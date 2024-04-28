@@ -32,111 +32,139 @@ namespace CarService_API.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] clsRegisterModel model)
         {
-            if (model == null)
-            {
-                return BadRequest(new ResultModel { Message = "Parametre hatalı", Status = false });
-            }
-            model.mail = model.mail.Trim();
-            model.name = model.name.Trim();
-            model.surname = model.surname.Trim();
-            if (!IsValidEmail(model.mail))
-            {
-                return BadRequest(new ResultModel { Message = "Mail adresi geçersiz", Status = false });
-            }
-            var u = await _context.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Mail == model.mail);
-            if (u != null && (u.Active == "Y" || u.Usertype != "C"))
-            {
-                return BadRequest(new ResultModel { Message = "Mail adresi zaten kullanılmakta", Status = false });
-            }
-
-            CreatePasswordHash(model.psw, out var passwordHash, out var passwordSalt);
-            if (u != null)
-            {
-                u.Name = model.name;
-                u.Surname = model.surname;
-                u.Active = "Y";
-                u.Passhash = passwordHash;
-                u.Passsalt = passwordSalt;
-            }
-            else
-            {
-                u = new Models.DB.User
-                {
-                    Mail = model.mail,
-                    Usertype = "C",
-                    Active = "Y",
-                    Cdate = DateTime.Now,
-                    Name = model.name,
-                    Surname = model.surname,
-                    Passhash = passwordHash,
-                    Passsalt = passwordSalt
-                };
-                await _context.Users.AddAsync(u);
-            }
             try
             {
+                if (model == null)
+                {
+                    throw new Exception("Parametre hatalı");
+                }
+                model.mail = model.mail.Trim();
+                model.name = model.name.Trim();
+                model.surname = model.surname.Trim();
+                if (!IsValidEmail(model.mail))
+                {
+                    throw new Exception("Mail adresi geçersiz");
+                }
+                var u = await _context.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Mail == model.mail);
+                if (u != null && (u.Active == "Y" || u.Usertype != "C"))
+                {
+                    throw new Exception("Mail adresi zaten kullanılmakta");
+                }
+
+                CreatePasswordHash(model.psw, out var passwordHash, out var passwordSalt);
+                if (u != null)
+                {
+                    u.Name = model.name;
+                    u.Surname = model.surname;
+                    u.Active = "Y";
+                    u.Passhash = passwordHash;
+                    u.Passsalt = passwordSalt;
+                }
+                else
+                {
+                    u = new Models.DB.User
+                    {
+                        Mail = model.mail,
+                        Usertype = "C",
+                        Active = "Y",
+                        Cdate = DateTime.Now,
+                        Name = model.name,
+                        Surname = model.surname,
+                        Passhash = passwordHash,
+                        Passsalt = passwordSalt
+                    };
+                    await _context.Users.AddAsync(u);
+                }
                 await _context.SaveChangesAsync();
+                string token = _extentsion.CreateToken(u.Id, (u.Companyid ?? 0m), u.Usertype);
+                if (string.IsNullOrEmpty(token))
+                {
+                    throw new Exception("Giriş yapılamadı");
+                }
+                return Ok(new ResultModel<LoginResultUser>
+                {
+                    Status = true,
+                    Data = new LoginResultUser
+                    {
+                        UserId = u.Id,
+                        Ad = u.Name,
+                        Soyad = u.Surname,
+                        CompanyId = u.Companyid ?? 0m,
+                        UserType = u.Usertype,
+                        Token = token,
+                        CompanyName = u.Company?.Companyname ?? ""
+                    }
+                });
             }
             catch (Exception ex)
             {
                 return BadRequest(new ResultModel { Message = ex.Message, Status = false });
             }
-            return Ok(new ResultModel<LoginResultUser>
-            {
-                Status = true,
-                Data = new LoginResultUser
-                {
-                    UserId = u.Id,
-                    Ad = u.Name,
-                    Soyad = u.Surname,
-                    CompanyId = u.Companyid ?? 0m,
-                    UserType = u.Usertype,
-                    Token = _extentsion.CreateToken(u.Id, (u.Companyid ?? 0m), u.Usertype),
-                    CompanyName = u.Company?.Companyname ?? ""
-                }
-            });
         }
 
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] clsLoginModel model)
         {
-            if (model == null)
+            try
             {
-                return BadRequest(new ResultModel { Message = "Parametre hatalı", Status = false });
-            }
-            var u = await _context.Users.AsNoTracking().Where(x => x.Mail == model.mail.Trim() && x.Active == "Y").Include(x => x.Company)
-                .FirstOrDefaultAsync(x => x.Usertype == "C" || (x.Company != null && x.Company.Active == "Y"));
-            if (u == null)
-            {
-                return BadRequest(new ResultModel { Message = "Mail adresi ya da şifre yanlış", Status = false });
-            }
-            CreatePasswordHash(model.psw, out var passwordHash, out var passwordSalt);
-            if (passwordHash != u.Passhash || passwordSalt != u.Passsalt)
-            {
-                return BadRequest(new ResultModel { Message = "Mail adresi ya da şifre yanlış", Status = false });
-            }
-
-            return Ok(new ResultModel<LoginResultUser>
-            {
-                Status = true,
-                Data = new LoginResultUser
+                if (model == null)
                 {
-                    UserId = u.Id,
-                    Ad = u.Name,
-                    Soyad = u.Surname,
-                    CompanyId = u.Companyid ?? 0m,
-                    UserType = u.Usertype,
-                    Token = _extentsion.CreateToken(u.Id, 0m, "C"),
-                    CompanyName = u.Company?.Companyname ?? ""
+                    throw new Exception("Parametre hatalı");
                 }
-            });
+                var u = await _context.Users.AsNoTracking().Where(x => x.Mail == model.mail.Trim() && x.Active == "Y").Include(x => x.Company)
+                    .FirstOrDefaultAsync(x => x.Usertype == "C" || (x.Company != null && x.Company.Active == "Y"));
+                if (u == null)
+                {
+                    throw new Exception("Mail adresi ya da şifre yanlış");
+                }
+                if (VerifyPassword(model.psw, u.Passhash, u.Passsalt))
+                {
+                    throw new Exception("Mail adresi ya da şifre yanlış");
+                }
+                //CreatePasswordHash(model.psw, out var passwordHash, out var passwordSalt);
+                //if (passwordHash != u.Passhash || passwordSalt != u.Passsalt)
+                //{
+                //    throw new Exception("Mail adresi ya da şifre yanlış");
+                //}
+                string token = _extentsion.CreateToken(u.Id, (u.Companyid ?? 0m), u.Usertype);
+                if (string.IsNullOrEmpty(token))
+                {
+                    throw new Exception("Giriş yapılamadı");
+                }
+                return Ok(new ResultModel<LoginResultUser>
+                {
+                    Status = true,
+                    Data = new LoginResultUser
+                    {
+                        UserId = u.Id,
+                        Ad = u.Name,
+                        Soyad = u.Surname,
+                        CompanyId = u.Companyid ?? 0m,
+                        UserType = u.Usertype,
+                        Token = token,
+                        CompanyName = u.Company?.Companyname ?? ""
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ResultModel { Message = ex.Message, Status = false });
+            }
         }
-        private void CreatePasswordHash(string password, out string passwordHash, out string passwordSalt)
+        public static void CreatePasswordHash(string password, out string passwordHash, out string passwordSalt)
         {
             using (var hmac = new HMACSHA512())
             {
                 passwordSalt = Convert.ToBase64String(hmac.Key);
-                passwordHash = Convert.ToBase64String(hmac.ComputeHash(Encoding.UTF8.GetBytes(password)));
+                passwordHash = Convert.ToBase64String(hmac.ComputeHash(Encoding.UTF8.GetBytes(password + passwordSalt)));
+            }
+        }
+        public static bool VerifyPassword(string password, string storedHash, string storedSalt)
+        {
+            using (var hmac = new HMACSHA512(Convert.FromBase64String(storedSalt)))
+            {
+                var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
+                return Convert.ToBase64String(computedHash) == storedHash;
             }
         }
         public bool IsValidEmail(string email)
