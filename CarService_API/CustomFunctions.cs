@@ -1,6 +1,8 @@
 ﻿using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace CarService_API
 {
@@ -52,13 +54,34 @@ namespace CarService_API
                 {
                     UserId = Convert.ToDecimal(jwt.Claims.FirstOrDefault(x => x.Type == "UserId")?.Value ?? "0"),
                     CompanyId = Convert.ToDecimal(jwt.Claims.FirstOrDefault(x => x.Type == "CompanyId")?.Value ?? "0"),
-                    UserType = jwt.Claims.FirstOrDefault(x => x.Type == "CompanyId")?.Value ?? "0"
+                    UserType = jwt.Claims.FirstOrDefault(x => x.Type == "UserType")?.Value ?? "0"
                 };
             }
             catch (Exception ex)
             {
                 return null;
             }
+        }
+        public static void CreatePasswordHash(string password, out string passwordHash, out string passwordSalt)
+        {
+            using (var hmac = new HMACSHA512())
+            {
+                passwordSalt = Convert.ToBase64String(hmac.Key);
+                passwordHash = Convert.ToBase64String(hmac.ComputeHash(Encoding.UTF8.GetBytes(password + passwordSalt)));
+            }
+        }
+        public static bool VerifyPassword(string password, string storedHash, string storedSalt)
+        {
+            using (var hmac = new HMACSHA512(Convert.FromBase64String(storedSalt)))
+            {
+                var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
+                return Convert.ToBase64String(computedHash) == storedHash;
+            }
+        }
+        public static bool IsValidEmail(string email)
+        {
+            string pattern = @"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$";
+            return Regex.IsMatch(email, pattern);
         }
     }
     public class ResultModel<T> : ResultModel //where T : class

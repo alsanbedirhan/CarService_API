@@ -41,7 +41,7 @@ namespace CarService_API.Controllers
                 model.mail = model.mail.Trim();
                 model.name = model.name.Trim();
                 model.surname = model.surname.Trim();
-                if (!IsValidEmail(model.mail))
+                if (!CustomFunctions.IsValidEmail(model.mail))
                 {
                     throw new Exception("Mail adresi geçersiz");
                 }
@@ -51,7 +51,7 @@ namespace CarService_API.Controllers
                     throw new Exception("Mail adresi zaten kullanılmakta");
                 }
 
-                CreatePasswordHash(model.psw, out var passwordHash, out var passwordSalt);
+                CustomFunctions.CreatePasswordHash(model.psw, out var passwordHash, out var passwordSalt);
                 if (u != null)
                 {
                     u.Name = model.name;
@@ -117,7 +117,7 @@ namespace CarService_API.Controllers
                 {
                     throw new Exception("Mail adresi ya da şifre yanlış");
                 }
-                if (VerifyPassword(model.psw, u.Passhash, u.Passsalt))
+                if (CustomFunctions.VerifyPassword(model.psw, u.Passhash, u.Passsalt))
                 {
                     throw new Exception("Mail adresi ya da şifre yanlış");
                 }
@@ -150,27 +150,6 @@ namespace CarService_API.Controllers
             {
                 return BadRequest(new ResultModel { Message = ex.Message, Status = false });
             }
-        }
-        public static void CreatePasswordHash(string password, out string passwordHash, out string passwordSalt)
-        {
-            using (var hmac = new HMACSHA512())
-            {
-                passwordSalt = Convert.ToBase64String(hmac.Key);
-                passwordHash = Convert.ToBase64String(hmac.ComputeHash(Encoding.UTF8.GetBytes(password + passwordSalt)));
-            }
-        }
-        public static bool VerifyPassword(string password, string storedHash, string storedSalt)
-        {
-            using (var hmac = new HMACSHA512(Convert.FromBase64String(storedSalt)))
-            {
-                var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
-                return Convert.ToBase64String(computedHash) == storedHash;
-            }
-        }
-        public bool IsValidEmail(string email)
-        {
-            string pattern = @"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$";
-            return Regex.IsMatch(email, pattern);
         }
     }
 }
