@@ -19,18 +19,21 @@ namespace CarService_API.Controllers
             public decimal Idno { get; set; }
             public string Ad { get; set; }
             public string Soyad { get; set; }
+            public string Mail { get; set; }
+            public string Tip { get; set; }
             public DateTime Cdate { get; set; }
         }
         public class clsSearchUser
         {
             public string ad { get; set; }
             public string soyad { get; set; }
+            public string usertype { get; set; }
         }
         public class clsWorkUser : clsSearchUser
         {
             public decimal id { get; set; }
             public string mail { get; set; }
-            public string usertype { get; set; }
+            public string psw { get; set; }
         }
         [HttpPost("allusers")]
         public async Task<IActionResult> AllUsers([FromBody] clsSearchUser input)
@@ -45,13 +48,17 @@ namespace CarService_API.Controllers
 
                 var l = await _context.Users.AsNoTracking().Where(x => x.Companyid == u.CompanyId && x.Active == "Y" &&
                 (input != null && !string.IsNullOrEmpty(input.ad) ? x.Name.ToLower().Contains(input.ad.ToLower()) : true) &&
-                (input != null && !string.IsNullOrEmpty(input.soyad) ? x.Name.ToLower().Contains(input.soyad.ToLower()) : true)).Select(x => new clsUsers
-                {
-                    Ad = x.Name,
-                    Soyad = x.Surname,
-                    Cdate = x.Cdate ?? DateTime.MinValue,
-                    Idno = x.Id
-                }).OrderByDescending(x => x.Cdate).ToListAsync();
+                (input != null && !string.IsNullOrEmpty(input.soyad) ? x.Surname.ToLower().Contains(input.soyad.ToLower()) : true) &&
+                (input != null && !string.IsNullOrEmpty(input.usertype) ? x.Usertype == input.usertype : true))
+                    .Select(x => new clsUsers
+                    {
+                        Ad = x.Name,
+                        Soyad = x.Surname,
+                        Mail = x.Mail,
+                        Cdate = x.Cdate ?? DateTime.MinValue,
+                        Idno = x.Id,
+                        Tip = x.Usertype
+                    }).OrderByDescending(x => x.Cdate).ToListAsync();
 
                 return Ok(new ResultModel<List<clsUsers>> { Status = true, Data = l });
             }
@@ -66,7 +73,7 @@ namespace CarService_API.Controllers
             try
             {
                 var u = _extentsion.GetTokenValues();
-                if (u == null || input == null || string.IsNullOrEmpty(input.ad) || string.IsNullOrEmpty(input.soyad) || string.IsNullOrEmpty(input.mail))
+                if (u == null || input == null || string.IsNullOrEmpty(input.ad) || string.IsNullOrEmpty(input.soyad) || string.IsNullOrEmpty(input.mail) || string.IsNullOrEmpty(input.usertype))
                 {
                     throw new Exception("Hata oluştu");
                 }
@@ -77,8 +84,6 @@ namespace CarService_API.Controllers
                 {
                     throw new Exception("Mail adresi hatalı");
                 }
-                string pass = Guid.NewGuid().ToString();
-                CustomFunctions.CreatePasswordHash(pass, out string passwordHash, out string passwordSalt);
                 if (input.id > 0)
                 {
                     var f = await _context.Users.FirstOrDefaultAsync(x => x.Id == input.id && x.Active == "Y");
@@ -89,24 +94,37 @@ namespace CarService_API.Controllers
                     f.Mail = input.mail;
                     f.Name = input.ad;
                     f.Surname = input.soyad;
-                    f.Passsalt = passwordSalt;
-                    f.Passhash = passwordHash;
                 }
                 else
                 {
-                    await _context.Users.AddAsync(new Models.DB.User
+                    string pass = Guid.NewGuid().ToString();
+                    CustomFunctions.CreatePasswordHash(pass, out string passwordHash, out string passwordSalt);
+                    var f = await _context.Users.FirstOrDefaultAsync(x => x.Mail == input.mail);
+                    if (f == null)
                     {
-                        Active = "Y",
-                        Cdate = DateTime.Now,
-                        Companyid = input.usertype != "C" ? u.CompanyId : null,
-                        Name = input.ad,
-                        Surname = input.soyad,
-                        Mail = input.mail,
-                        Usertype = input.usertype,
-                        Passsalt = passwordSalt,
-                        Passhash = passwordHash
-                    });
+                        await _context.Users.AddAsync(new Models.DB.User
+                        {
+                            Active = "Y",
+                            Cdate = DateTime.Now,
+                            Companyid = u.CompanyId,
+                            Name = input.ad,
+                            Surname = input.soyad,
+                            Mail = input.mail,
+                            Usertype = input.usertype,
+                            Passsalt = passwordSalt,
+                            Passhash = passwordHash
+                        });
+                    }
+                    else if (f.Active == "Y")
+                    {
+                        throw new Exception("Mail adresi kullanılmakta");
+                    }
+                    else
+                    {
+                        f.Active = "Y";
+                    }
                 }
+                await _context.SaveChangesAsync();
                 return Ok(new ResultModel { Status = true });
             }
             catch (Exception ex)
