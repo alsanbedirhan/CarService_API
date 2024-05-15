@@ -173,6 +173,7 @@ namespace CarService_API
         public decimal UserId { get; set; }
         public string UserType { get; set; }
         public string CompanyName { get; set; }
+        public string Mail { get; set; }
         public decimal CompanyId { get; set; }
         public string Ad { get; set; }
         public string Soyad { get; set; }

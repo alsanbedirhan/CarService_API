@@ -41,11 +41,16 @@ namespace CarService_API.Controllers
                 model.mail = model.mail.Trim();
                 model.name = model.name.Trim();
                 model.surname = model.surname.Trim();
+                model.psw = model.psw.Trim();
                 if (!CustomFunctions.IsValidEmail(model.mail))
                 {
                     throw new Exception("Mail adresi geçersiz");
                 }
-                var u = await _context.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Mail == model.mail);
+                if (string.IsNullOrEmpty(model.psw) || model.psw.Length <= 5)
+                {
+                    throw new Exception("Şifre geçersiz");
+                }
+                var u = await _context.Users.FirstOrDefaultAsync(x => x.Mail == model.mail);
                 if (u != null && (u.Active == "Y" || u.Usertype != "C"))
                 {
                     throw new Exception("Mail adresi zaten kullanılmakta");
@@ -92,7 +97,8 @@ namespace CarService_API.Controllers
                         CompanyId = u.Companyid ?? 0m,
                         UserType = u.Usertype,
                         Token = token,
-                        CompanyName = u.Company?.Companyname ?? ""
+                        CompanyName = u.Company?.Companyname ?? "",
+                        Mail = u.Mail
                     }
                 });
             }
@@ -142,7 +148,8 @@ namespace CarService_API.Controllers
                         CompanyId = u.Companyid ?? 0m,
                         UserType = u.Usertype,
                         Token = token,
-                        CompanyName = u.Company?.Companyname ?? ""
+                        CompanyName = u.Company?.Companyname ?? "",
+                        Mail = u.Mail
                     }
                 });
             }

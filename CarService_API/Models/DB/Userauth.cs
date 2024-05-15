@@ -20,4 +20,6 @@ public partial class Userauth
     public byte? Authbit { get; set; }
 
     public string? Active { get; set; }
+
+    public virtual User User { get; set; } = null!;
 }

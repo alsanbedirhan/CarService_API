@@ -1,6 +1,7 @@
 ﻿using CarService_API.Models.DB;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace CarService_API.Controllers
 {
@@ -9,10 +10,12 @@ namespace CarService_API.Controllers
     {
         ModelContext _context;
         Extentsion _extentsion;
-        public UsersController(ModelContext context, Extentsion extentsion)
+        IMemoryCache _cache;
+        public UsersController(ModelContext context, Extentsion extentsion, IMemoryCache cache)
         {
             _context = context;
             _extentsion = extentsion;
+            _cache = cache;
         }
         public class clsUsers
         {
@@ -33,7 +36,6 @@ namespace CarService_API.Controllers
         {
             public decimal id { get; set; }
             public string mail { get; set; }
-            public string psw { get; set; }
         }
         [HttpPost("allusers")]
         public async Task<IActionResult> AllUsers([FromBody] clsSearchUser input)
@@ -67,6 +69,7 @@ namespace CarService_API.Controllers
                 return BadRequest(new ResultModel { Status = false, Message = ex.Message });
             }
         }
+
         [HttpPost("workuser")]
         public async Task<IActionResult> WorkUser([FromBody] clsWorkUser input)
         {
@@ -97,7 +100,7 @@ namespace CarService_API.Controllers
                 }
                 else
                 {
-                    string pass = Guid.NewGuid().ToString();
+                    string pass = Guid.NewGuid().ToString("n").Substring(0, 8);
                     CustomFunctions.CreatePasswordHash(pass, out string passwordHash, out string passwordSalt);
                     var f = await _context.Users.FirstOrDefaultAsync(x => x.Mail == input.mail);
                     if (f == null)
@@ -123,8 +126,15 @@ namespace CarService_API.Controllers
                     {
                         f.Active = "Y";
                     }
+                    await _context.Requestlogs.AddAsync(new Requestlog
+                    {
+                        Rdate = DateTime.Now,
+                        Userid = u.UserId,
+                        UserAgent = pass
+                    });
                 }
                 await _context.SaveChangesAsync();
+                _cache.Remove("users");
                 return Ok(new ResultModel { Status = true });
             }
             catch (Exception ex)

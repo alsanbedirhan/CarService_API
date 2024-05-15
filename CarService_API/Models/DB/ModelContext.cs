@@ -193,6 +193,8 @@ public partial class ModelContext : DbContext
 
             entity.ToTable("USERS");
 
+            entity.HasIndex(e => e.Mail, "USERS_UNIQUE").IsUnique();
+
             entity.Property(e => e.Id)
                 .ValueGeneratedOnAdd()
                 .HasColumnType("NUMBER")
@@ -276,6 +278,11 @@ public partial class ModelContext : DbContext
             entity.Property(e => e.Uuser)
                 .HasColumnType("NUMBER")
                 .HasColumnName("UUSER");
+
+            entity.HasOne(d => d.User).WithMany(p => p.Userauths)
+                .HasForeignKey(d => d.Userid)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("USERAUTHS_USERS_FK");
         });
 
         modelBuilder.Entity<Userdate>(entity =>
