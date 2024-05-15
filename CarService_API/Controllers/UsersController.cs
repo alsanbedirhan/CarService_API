@@ -87,6 +87,10 @@ namespace CarService_API.Controllers
                 {
                     throw new Exception("Mail adresi hatalı");
                 }
+                if (input.id != u.UserId && u.UserType != "A")
+                {
+                    throw new Exception("Yetkiniz bulunamadı");
+                }
                 if (input.id > 0)
                 {
                     var f = await _context.Users.FirstOrDefaultAsync(x => x.Id == input.id && x.Active == "Y");
