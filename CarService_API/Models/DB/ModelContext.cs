@@ -22,15 +22,19 @@ public partial class ModelContext : DbContext
 
     public virtual DbSet<Avaliableday> Avaliabledays { get; set; }
 
-    public virtual DbSet<Car> Cars { get; set; }
-
     public virtual DbSet<Company> Companies { get; set; }
+
+    public virtual DbSet<Make> Makes { get; set; }
+
+    public virtual DbSet<Makemodel> Makemodels { get; set; }
 
     public virtual DbSet<Requestlog> Requestlogs { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
 
     public virtual DbSet<Userauth> Userauths { get; set; }
+
+    public virtual DbSet<Usercar> Usercars { get; set; }
 
     public virtual DbSet<Userdate> Userdates { get; set; }
 
@@ -97,42 +101,6 @@ public partial class ModelContext : DbContext
                 .HasConstraintName("AVALIABLEDAYS_COMPANIES_FK");
         });
 
-        modelBuilder.Entity<Car>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("SYS_C008241");
-
-            entity.ToTable("CARS");
-
-            entity.Property(e => e.Id)
-                .ValueGeneratedOnAdd()
-                .HasColumnType("NUMBER")
-                .HasColumnName("ID");
-            entity.Property(e => e.Cdate)
-                .HasPrecision(6)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnName("CDATE");
-            entity.Property(e => e.Cuser)
-                .HasColumnType("NUMBER")
-                .HasColumnName("CUSER");
-            entity.Property(e => e.Explanation)
-                .HasMaxLength(1000)
-                .HasColumnName("EXPLANATION");
-            entity.Property(e => e.Plate)
-                .HasMaxLength(100)
-                .HasColumnName("PLATE");
-            entity.Property(e => e.Uniquekey)
-                .HasMaxLength(100)
-                .HasColumnName("UNIQUEKEY");
-            entity.Property(e => e.Userid)
-                .HasColumnType("NUMBER")
-                .HasColumnName("USERID");
-
-            entity.HasOne(d => d.User).WithMany(p => p.Cars)
-                .HasForeignKey(d => d.Userid)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("CARS_USERS_FK");
-        });
-
         modelBuilder.Entity<Company>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("SYS_C008289");
@@ -153,6 +121,58 @@ public partial class ModelContext : DbContext
                 .HasMaxLength(500)
                 .HasDefaultValueSql("1")
                 .HasColumnName("COMPANYNAME");
+        });
+
+        modelBuilder.Entity<Make>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("SYS_C008305");
+
+            entity.ToTable("MAKES");
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedOnAdd()
+                .HasColumnType("NUMBER")
+                .HasColumnName("ID");
+            entity.Property(e => e.Cdate)
+                .HasPrecision(6)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("CDATE");
+            entity.Property(e => e.Cuser)
+                .HasColumnType("NUMBER")
+                .HasColumnName("CUSER");
+            entity.Property(e => e.Explanation)
+                .HasMaxLength(100)
+                .HasColumnName("EXPLANATION");
+        });
+
+        modelBuilder.Entity<Makemodel>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("SYS_C008309");
+
+            entity.ToTable("MAKEMODELS");
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedOnAdd()
+                .HasColumnType("NUMBER")
+                .HasColumnName("ID");
+            entity.Property(e => e.Cdate)
+                .HasPrecision(6)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("CDATE");
+            entity.Property(e => e.Cuser)
+                .HasColumnType("NUMBER")
+                .HasColumnName("CUSER");
+            entity.Property(e => e.Explanation)
+                .HasMaxLength(500)
+                .HasColumnName("EXPLANATION");
+            entity.Property(e => e.Makeid)
+                .HasColumnType("NUMBER")
+                .HasColumnName("MAKEID");
+
+            entity.HasOne(d => d.Make).WithMany(p => p.Makemodels)
+                .HasForeignKey(d => d.Makeid)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("MAKEMODELS_MAKES_FK");
         });
 
         modelBuilder.Entity<Requestlog>(entity =>
@@ -285,6 +305,53 @@ public partial class ModelContext : DbContext
                 .HasConstraintName("USERAUTHS_USERS_FK");
         });
 
+        modelBuilder.Entity<Usercar>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("SYS_C008315");
+
+            entity.ToTable("USERCARS");
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedOnAdd()
+                .HasColumnType("NUMBER")
+                .HasColumnName("ID");
+            entity.Property(e => e.Cdate)
+                .HasPrecision(6)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("CDATE");
+            entity.Property(e => e.Cuser)
+                .HasColumnType("NUMBER")
+                .HasColumnName("CUSER");
+            entity.Property(e => e.Explanation)
+                .HasMaxLength(100)
+                .HasColumnName("EXPLANATION");
+            entity.Property(e => e.Makemodelid)
+                .HasColumnType("NUMBER")
+                .HasColumnName("MAKEMODELID");
+            entity.Property(e => e.Plate)
+                .HasMaxLength(100)
+                .HasColumnName("PLATE");
+            entity.Property(e => e.Pyear)
+                .HasPrecision(4)
+                .HasColumnName("PYEAR");
+            entity.Property(e => e.Uniquekey)
+                .HasMaxLength(500)
+                .HasColumnName("UNIQUEKEY");
+            entity.Property(e => e.Userid)
+                .HasColumnType("NUMBER")
+                .HasColumnName("USERID");
+
+            entity.HasOne(d => d.Makemodel).WithMany(p => p.Usercars)
+                .HasForeignKey(d => d.Makemodelid)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("USERCARS_MAKEMODELS_FK");
+
+            entity.HasOne(d => d.User).WithMany(p => p.Usercars)
+                .HasForeignKey(d => d.Userid)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("USERCARS_USERS_FK");
+        });
+
         modelBuilder.Entity<Userdate>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("SYS_C008262");
@@ -329,11 +396,6 @@ public partial class ModelContext : DbContext
             entity.Property(e => e.Userid)
                 .HasColumnType("NUMBER")
                 .HasColumnName("USERID");
-
-            entity.HasOne(d => d.Car).WithMany(p => p.Userdates)
-                .HasForeignKey(d => d.Carid)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("USERDATES_CARS_FK");
 
             entity.HasOne(d => d.User).WithMany(p => p.Userdates)
                 .HasForeignKey(d => d.Userid)

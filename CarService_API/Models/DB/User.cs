@@ -27,13 +27,13 @@ public partial class User
 
     public string Passhash { get; set; } = null!;
 
-    public virtual ICollection<Car> Cars { get; set; } = new List<Car>();
-
     public virtual Company? Company { get; set; }
 
     public virtual ICollection<Requestlog> Requestlogs { get; set; } = new List<Requestlog>();
 
     public virtual ICollection<Userauth> Userauths { get; set; } = new List<Userauth>();
+
+    public virtual ICollection<Usercar> Usercars { get; set; } = new List<Usercar>();
 
     public virtual ICollection<Userdateoffer> Userdateoffers { get; set; } = new List<Userdateoffer>();
 

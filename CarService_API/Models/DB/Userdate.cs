@@ -23,8 +23,6 @@ public partial class Userdate
 
     public string? Explanation { get; set; }
 
-    public virtual Car Car { get; set; } = null!;
-
     public virtual User User { get; set; } = null!;
 
     public virtual ICollection<Userdateoffer> Userdateoffers { get; set; } = new List<Userdateoffer>();

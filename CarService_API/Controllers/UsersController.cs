@@ -17,7 +17,7 @@ namespace CarService_API.Controllers
             _extentsion = extentsion;
             _cache = cache;
         }
-        public class clsUsers
+        class clsUsers
         {
             public decimal Idno { get; set; }
             public string Ad { get; set; }
@@ -26,19 +26,19 @@ namespace CarService_API.Controllers
             public string Tip { get; set; }
             public DateTime Cdate { get; set; }
         }
-        public class clsSearchUser
+        class clsSearchUser
         {
             public string ad { get; set; }
             public string soyad { get; set; }
             public string usertype { get; set; }
         }
-        public class clsWorkUser : clsSearchUser
+        class clsWorkUser : clsSearchUser
         {
             public decimal id { get; set; }
             public string mail { get; set; }
         }
         [HttpPost("allusers")]
-        public async Task<IActionResult> AllUsers([FromBody] clsSearchUser input)
+        async Task<IActionResult> AllUsers([FromBody] clsSearchUser input)
         {
             try
             {
@@ -71,7 +71,7 @@ namespace CarService_API.Controllers
         }
 
         [HttpPost("workuser")]
-        public async Task<IActionResult> WorkUser([FromBody] clsWorkUser input)
+        async Task<IActionResult> WorkUser([FromBody] clsWorkUser input)
         {
             try
             {
