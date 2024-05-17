@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -13,10 +14,12 @@ namespace CarService_API.Controllers
     {
         ModelContext _context;
         Extentsion _extentsion;
-        public NoAuthController(ModelContext context, Extentsion extentsion)
+        IMemoryCache _cache;
+        public NoAuthController(ModelContext context, Extentsion extentsion, IMemoryCache cache)
         {
             _context = context;
             _extentsion = extentsion;
+            _cache = cache;
         }
         public class clsLoginModel
         {
@@ -101,6 +104,7 @@ namespace CarService_API.Controllers
                         Mail = u.Mail
                     }
                 });
+                _cache.Remove("users");
             }
             catch (Exception ex)
             {

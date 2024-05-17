@@ -15,12 +15,7 @@ namespace CarService_API.Controllers
             _context = context;
             _extentsion = extentsion;
         }
-        class clsSearchCar
-        {
-            public decimal MakeId { get; set; }
-            public decimal MakeModelId { get; set; }
-        }
-        class clsCars
+        public class clsCars
         {
             public decimal Idno { get; set; }
             public decimal ModelId { get; set; }
@@ -29,30 +24,25 @@ namespace CarService_API.Controllers
             public byte Yil { get; set; }
             public string Plaka { get; set; }
         }
-        [HttpPost("allcars")]
-        async Task<IActionResult> AllCars([FromBody] clsSearchCar input)
+        [HttpGet("makemodels")]
+        public async Task<IActionResult> Makes()
         {
             try
             {
                 var u = _extentsion.GetTokenValues();
-                if (u == null || u.UserType != "A")
+                if (u == null)
                 {
                     throw new Exception("Hata oluştu");
                 }
 
-                var l = await _context.Usercars.AsNoTracking().Include(x => x.Makemodel).Where(x => x.Userid == u.UserId &&
-                (input != null && input.MakeId > 0 ? (input.MakeModelId > 0 ? x.Makemodelid == x.Makemodelid : x.Makemodel.Makeid == input.MakeId) : true))
-                    .Select(x => new clsCars
-                    {
-                        Idno = x.Id,
-                        Marka = x.Makemodel.Make.Explanation,
-                        Model = x.Makemodel.Explanation,
-                        ModelId = x.Makemodelid,
-                        Plaka = x.Plate,
-                        Yil = x.Pyear ?? 0
-                    }).OrderByDescending(x => x.Idno).ToListAsync();
+                var l = await _context.Makes.Include(x => x.Makemodels).AsNoTracking().Select(x => new clsSearchDetail
+                {
+                    Key = x.Id,
+                    DisplayValue = x.Explanation,
+                    Details = x.Makemodels.Select(y => new clsSearch { Key = y.Id, DisplayValue = x.Explanation + " - " + y.Explanation }).ToList()
+                }).ToListAsync();
 
-                return Ok(new ResultModel<List<clsCars>> { Status = true, Data = l });
+                return Ok(new ResultModel<List<clsSearchDetail>> { Status = true, Data = l });
             }
             catch (Exception ex)
             {

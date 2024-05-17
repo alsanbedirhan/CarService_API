@@ -168,6 +168,15 @@ namespace CarService_API
         public decimal CompanyId { get; set; } = 0;
         public string UserType { get; set; } = "";
     }
+    public class clsSearch
+    {
+        public decimal Key { get; set; }
+        public string DisplayValue { get; set; }
+    }
+    public class clsSearchDetail : clsSearch
+    {
+        public List<clsSearch> Details { get; set; }
+    }
     public class LoginResultUser
     {
         public decimal UserId { get; set; }

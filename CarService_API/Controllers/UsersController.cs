@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using static CarService_API.Controllers.CarsController;
 
 namespace CarService_API.Controllers
 {
@@ -17,7 +18,7 @@ namespace CarService_API.Controllers
             _extentsion = extentsion;
             _cache = cache;
         }
-        class clsUsers
+        public class clsUsers
         {
             public decimal Idno { get; set; }
             public string Ad { get; set; }
@@ -26,19 +27,58 @@ namespace CarService_API.Controllers
             public string Tip { get; set; }
             public DateTime Cdate { get; set; }
         }
-        class clsSearchUser
+        public class clsSearchUser
         {
             public string ad { get; set; }
             public string soyad { get; set; }
             public string usertype { get; set; }
         }
-        class clsWorkUser : clsSearchUser
+        public class clsWorkUser : clsSearchUser
         {
             public decimal id { get; set; }
             public string mail { get; set; }
         }
+        public class clsSearchCar
+        {
+            public List<decimal> MakeIds { get; set; }
+            public List<decimal> MakeModelIds { get; set; }
+        }
+        [HttpPost("cars")]
+        public async Task<IActionResult> AllCars([FromBody] clsSearchCar input)
+        {
+            try
+            {
+                if (input == null)
+                {
+                    throw new Exception("Hata oluştu");
+                }
+                var u = _extentsion.GetTokenValues();
+                if (u == null)
+                {
+                    throw new Exception("Hata oluştu");
+                }
+
+                var l = await _context.Usercars.AsNoTracking().Include(x => x.Makemodel).Where(x => x.Userid == u.UserId &&
+                (input.MakeModelIds.Any() ? input.MakeIds.Contains(x.Makemodelid) : (input.MakeIds.Any() ? input.MakeIds.Contains(x.Makemodel.Makeid) : true)))
+                    .Select(x => new clsCars
+                    {
+                        Idno = x.Id,
+                        Marka = x.Makemodel.Make.Explanation,
+                        Model = x.Makemodel.Explanation,
+                        ModelId = x.Makemodelid,
+                        Plaka = x.Plate,
+                        Yil = x.Pyear ?? 0
+                    }).OrderByDescending(x => x.Idno).ToListAsync();
+
+                return Ok(new ResultModel<List<clsCars>> { Status = true, Data = l });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ResultModel { Status = false, Message = ex.Message });
+            }
+        }
         [HttpPost("allusers")]
-        async Task<IActionResult> AllUsers([FromBody] clsSearchUser input)
+        public async Task<IActionResult> AllUsers([FromBody] clsSearchUser input)
         {
             try
             {
@@ -71,7 +111,7 @@ namespace CarService_API.Controllers
         }
 
         [HttpPost("workuser")]
-        async Task<IActionResult> WorkUser([FromBody] clsWorkUser input)
+        public async Task<IActionResult> WorkUser([FromBody] clsWorkUser input)
         {
             try
             {
