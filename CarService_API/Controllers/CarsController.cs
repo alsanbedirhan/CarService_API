@@ -35,8 +35,8 @@ namespace CarService_API.Controllers
         public class clsSearchCar
         {
             public decimal UserId { get; set; }
-            public List<decimal> MakeIds { get; set; }
-            public List<decimal> MakeModelIds { get; set; }
+            public decimal MakeId { get; set; }
+            public decimal MakeModelId { get; set; }
         }
 
         [HttpPost("allcars")]
@@ -54,7 +54,7 @@ namespace CarService_API.Controllers
                     throw new Exception("Hata oluştu");
                 }
                 var l = await _context.Usercars.AsNoTracking().Include(x => x.Makemodel).Where(x => x.Userid == input.UserId &&
-                (input.MakeModelIds.Any() ? input.MakeModelIds.Contains(x.Makemodelid) : (input.MakeIds.Any() ? input.MakeIds.Contains(x.Makemodel.Makeid) : true)))
+                (input.MakeModelId > 0 ? input.MakeModelId == x.Makemodelid : (input.MakeId > 0 ? input.MakeId == x.Makemodel.Makeid : true)))
                     .Select(x => new clsCars
                     {
                         Idno = x.Id,
