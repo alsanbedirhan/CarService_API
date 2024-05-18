@@ -10,17 +10,53 @@ namespace CarService_API.Controllers
     {
         ModelContext _context;
         Extentsion _extentsion;
-        IMemoryCache _cache;
-        public CompaniesController(ModelContext context, Extentsion extentsion, IMemoryCache cache)
+        public CompaniesController(ModelContext context, Extentsion extentsion)
         {
             _context = context;
             _extentsion = extentsion;
-            _cache = cache;
         }
         public class clsSaveEntry
         {
             public decimal UserCarId { get; set; }
             public string Aciklama { get; set; }
+        }
+        public class clsSearchCompanyWork
+        {
+            public string Ad { get; set; }
+            public string Soyad { get; set; }
+            public decimal MakeId { get; set; }
+            public decimal MakeModelId { get; set; }
+            public string Plaka { get; set; }
+            public string Isdone { get; set; }
+        }
+        public class SearchCompanyWorkList
+        {
+            public decimal Idno { get; set; }
+            public string Ad { get; set; }
+            public string Soyad { get; set; }
+            public string Marka { get; set; }
+            public string Model { get; set; }
+            public string Plaka { get; set; }
+        }
+        public class CompanyWorkDetail
+        {
+            public decimal Idno { get; set; }
+            public decimal Price { get; set; }
+            public string Aciklama { get; set; }
+            public DateTime Cdate { get; set; }
+            public decimal Cuser { get; set; }
+            public string Ad { get; set; }
+            public string Soyad { get; set; }
+        }
+        public class clsCompanyWorkDetail
+        {
+            public decimal CompanyWorkId { get; set; }
+            public decimal Price { get; set; }
+            public string Aciklama { get; set; }
+        }
+        public class clsIdno
+        {
+            public decimal Idno { get; set; }
         }
         [HttpPost("serviceentry")]
         public async Task<IActionResult> Entry([FromBody] clsSaveEntry input)
@@ -51,6 +87,149 @@ namespace CarService_API.Controllers
 
                 await _context.SaveChangesAsync();
 
+                return Ok(new ResultModel { Status = true });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ResultModel { Status = false, Message = ex.Message });
+            }
+        }
+        [HttpPost("search")]
+        public async Task<IActionResult> Search([FromBody] clsSearchCompanyWork input)
+        {
+            try
+            {
+                if (input == null)
+                {
+                    throw new Exception("Hata oluştu");
+                }
+                var u = _extentsion.GetTokenValues();
+                if (u == null || u.UserType == "C")
+                {
+                    throw new Exception("Hata oluştu");
+                }
+                input.Ad = input.Ad?.Trim() ?? "";
+                input.Soyad = input.Soyad?.Trim() ?? "";
+                input.Plaka = input.Plaka?.Trim() ?? "";
+                var l = await _context.Companyworks.Include(x => x.Usercar.Makemodel.Make).Include(x => x.Usercar.User).AsNoTracking()
+                    .Where(x => x.Active == "Y" && x.Isdone == input.Isdone &&
+                    (input.MakeModelId > 0 ? input.MakeModelId == x.Usercar.Makemodelid : input.MakeId > 0 ? input.MakeId == x.Usercar.Makemodel.Makeid : true) &&
+                    (!string.IsNullOrEmpty(input.Ad) ? x.Usercar.User.Name.ToLower().Contains(input.Ad.ToLower()) : true) &&
+                    (!string.IsNullOrEmpty(input.Soyad) ? x.Usercar.User.Surname.ToLower().Contains(input.Soyad.ToLower()) : true) &&
+                    (!string.IsNullOrEmpty(input.Plaka) ? x.Usercar.Plate != null && x.Usercar.Plate.ToLower().Contains(input.Plaka.ToLower()) : true))
+                    .Select(x => new SearchCompanyWorkList
+                    {
+                        Ad = x.Usercar.User.Name,
+                        Soyad = x.Usercar.User.Surname,
+                        Idno = x.Id,
+                        Marka = x.Usercar.Makemodel.Make.Explanation ?? "",
+                        Model = x.Usercar.Makemodel.Explanation ?? "",
+                        Plaka = x.Usercar.Plate ?? ""
+                    }).ToListAsync();
+
+                return Ok(new ResultModel<List<SearchCompanyWorkList>> { Status = true, Data = l });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ResultModel { Status = false, Message = ex.Message });
+            }
+        }
+        [HttpGet("detail")]
+        public async Task<IActionResult> Detail(decimal headerid)
+        {
+            try
+            {
+                if (headerid <= 0)
+                {
+                    throw new Exception("Hata oluştu");
+                }
+                var u = _extentsion.GetTokenValues();
+                if (u == null || u.UserType == "C")
+                {
+                    throw new Exception("Hata oluştu");
+                }
+
+                var l = await _context.Companyworkdetails.Include(x => x.Companywork).Include(x => x.User).AsNoTracking()
+                    .Where(x => x.Companyworkid == headerid && x.Active == "Y" && x.Companywork.Active == "Y").Select(x => new CompanyWorkDetail
+                    {
+                        Aciklama = x.Explanation ?? "",
+                        Cdate = x.Cdate ?? DateTime.MinValue,
+                        Ad = x.User.Name,
+                        Soyad = x.User.Surname,
+                        Cuser = x.Userid,
+                        Idno = x.Id,
+                        Price = x.Price ?? 0m
+                    }).ToListAsync();
+
+                return Ok(new ResultModel<List<CompanyWorkDetail>> { Status = true, Data = l });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ResultModel { Status = false, Message = ex.Message });
+            }
+        }
+        [HttpPost("adddetail")]
+        public async Task<IActionResult> Add([FromBody] clsCompanyWorkDetail input)
+        {
+            try
+            {
+                if (input == null || string.IsNullOrEmpty(input.Aciklama?.Trim()))
+                {
+                    throw new Exception("Hata oluştu");
+                }
+                var u = _extentsion.GetTokenValues();
+                if (u == null || u.UserType == "C")
+                {
+                    throw new Exception("Hata oluştu");
+                }
+                if (!(await _context.Companyworks.AnyAsync(x => x.Id == input.CompanyWorkId && x.Active == "Y" && x.Isdone == "N")))
+                {
+                    throw new Exception("Kayıt bulunamadı");
+                }
+                await _context.Companyworkdetails.AddAsync(new Companyworkdetail
+                {
+                    Companyworkid = input.CompanyWorkId,
+                    Cdate = DateTime.Now,
+                    Cuser = u.UserId,
+                    Explanation = input.Aciklama?.Trim() ?? "",
+                    Price = input.Price,
+                    Userid = u.UserId,
+                    Active = "Y"
+                });
+                await _context.SaveChangesAsync();
+
+                return Ok(new ResultModel { Status = true });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ResultModel { Status = false, Message = ex.Message });
+            }
+        }
+        [HttpPost("deletedetail")]
+        public async Task<IActionResult> Delete([FromBody] clsIdno input)
+        {
+            try
+            {
+                if (input == null || input.Idno <= 0)
+                {
+                    throw new Exception("Hata oluştu");
+                }
+                var u = _extentsion.GetTokenValues();
+                if (u == null || u.UserType == "C")
+                {
+                    throw new Exception("Hata oluştu");
+                }
+                var r = await _context.Companyworkdetails.FirstOrDefaultAsync(x => x.Id == input.Idno);
+                if (r == null)
+                {
+                    throw new Exception("Kayıt bulunamadı");
+                }
+                if (r.Userid != u.UserId && u.UserType != "A")
+                {
+                    throw new Exception("Yetkiniz bulunamadı");
+                }
+                r.Active = "N";
+                await _context.SaveChangesAsync();
                 return Ok(new ResultModel { Status = true });
             }
             catch (Exception ex)

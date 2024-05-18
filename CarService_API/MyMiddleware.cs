@@ -22,9 +22,9 @@ namespace CarService_API
                 {
                     AppModel? s = null;
                     var _extention = context.RequestServices.GetService<Extentsion>();
-                    var _tcontext = context.RequestServices.GetService<ModelContext>();
+                    var _context = context.RequestServices.GetService<ModelContext>();
                     var _cache = context.RequestServices.GetService<IMemoryCache>();
-                    if (_extention == null || _tcontext == null || _cache == null)
+                    if (_extention == null || _context == null || _cache == null)
                     {
                         context.Response.StatusCode = StatusCodes.Status500InternalServerError;
                         return;
@@ -35,7 +35,7 @@ namespace CarService_API
                         var _users = _cache.Get<List<User>>("users");
                         if (_users == null)
                         {
-                            _users = await _tcontext.Users.AsNoTracking().Include(x => x.Company).ToListAsync();
+                            _users = await _context.Users.AsNoTracking().Include(x => x.Company).ToListAsync();
                             _cache.Set("users", _users);
                         }
                         if (s == null || !_users.Any(x => x.Id == s.UserId))

@@ -123,9 +123,9 @@ namespace CarService_API.Controllers
                 }
 
                 var l = users.Where(x => x.Usertype == "C" && x.Active == "Y" &&
-                (!string.IsNullOrEmpty(input.ad) ? x.Name.Contains(input.ad, StringComparison.CurrentCultureIgnoreCase) : true) &&
-                (!string.IsNullOrEmpty(input.soyad) ? x.Surname.Contains(input.soyad, StringComparison.CurrentCultureIgnoreCase) : true) &&
-                (!string.IsNullOrEmpty(input.mail) ? x.Mail.Contains(input.mail) : true))
+                (!string.IsNullOrEmpty(input.ad) ? x.Name.ToLower().Contains(input.ad.ToLower()) : true) &&
+                (!string.IsNullOrEmpty(input.soyad) ? x.Surname.ToLower().Contains(input.soyad.ToLower()) : true) &&
+                (!string.IsNullOrEmpty(input.mail) ? x.Mail.ToLower().Contains(input.mail.ToLower()) : true))
                     .Select(x => new Customer
                     {
                         Idno = x.Id,
@@ -158,7 +158,7 @@ namespace CarService_API.Controllers
                 input.Plaka = input.Plaka?.Trim() ?? "";
 
                 var l = _context.Usercars.Include(x => x.Makemodel.Make).AsNoTracking().Where(x => x.Userid == input.UserId && x.Active == "Y" &&
-                (!string.IsNullOrEmpty(input.Plaka) && !string.IsNullOrEmpty(x.Plate) ? x.Plate.Contains(input.Plaka, StringComparison.CurrentCultureIgnoreCase) : true) &&
+                (!string.IsNullOrEmpty(input.Plaka) ? x.Plate != null && x.Plate.ToLower().Contains(input.Plaka.ToLower()) : true) &&
                 (input.MakeModelId > 0 ? x.Makemodelid == input.MakeModelId : (input.MakeId > 0 ? input.MakeId == x.Makemodel.Makeid : true)) &&
                 (input.Yil > 0 ? input.Yil == x.Pyear : true))
                     .Select(x => new UserCar
@@ -214,7 +214,7 @@ namespace CarService_API.Controllers
                 {
                     string pass = Guid.NewGuid().ToString("n").Substring(0, 8);
                     CustomFunctions.CreatePasswordHash(pass, out string passwordHash, out string passwordSalt);
-                    var f = await _context.Users.FirstOrDefaultAsync(x => x.Mail == input.mail);
+                    var f = await _context.Users.FirstOrDefaultAsync(x => x.Mail.ToLower() == input.mail.ToLower());
                     if (f == null)
                     {
                         await _context.Users.AddAsync(new Models.DB.User

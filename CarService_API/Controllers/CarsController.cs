@@ -58,10 +58,10 @@ namespace CarService_API.Controllers
                     .Select(x => new clsCars
                     {
                         Idno = x.Id,
-                        Marka = x.Makemodel.Make.Explanation,
-                        Model = x.Makemodel.Explanation,
+                        Marka = x.Makemodel.Make.Explanation ?? "",
+                        Model = x.Makemodel.Explanation ?? "",
                         ModelId = x.Makemodelid,
-                        Plaka = x.Plate,
+                        Plaka = x.Plate ?? "",
                         Yil = x.Pyear ?? 0,
                         MarkaId = x.Makemodel.Makeid,
                         UserId = x.Userid
@@ -93,8 +93,8 @@ namespace CarService_API.Controllers
                 var l = makes.Select(x => new clsSearchDetail
                 {
                     Key = x.Id,
-                    DisplayValue = x.Explanation,
-                    Details = x.Makemodels.Select(y => new clsSearch { Key = y.Id, DisplayValue = y.Explanation }).ToList()
+                    DisplayValue = x.Explanation ?? "",
+                    Details = x.Makemodels.Select(y => new clsSearch { Key = y.Id, DisplayValue = y.Explanation ?? "" }).ToList()
                 }).ToList();
 
                 return Ok(new ResultModel<List<clsSearchDetail>> { Status = true, Data = l });

@@ -53,7 +53,7 @@ namespace CarService_API.Controllers
                 {
                     throw new Exception("Şifre geçersiz");
                 }
-                var u = await _context.Users.FirstOrDefaultAsync(x => x.Mail == model.mail);
+                var u = await _context.Users.FirstOrDefaultAsync(x => x.Mail.ToLower() == model.mail.ToLower());
                 if (u != null && (u.Active == "Y" || u.Usertype != "C"))
                 {
                     throw new Exception("Mail adresi zaten kullanılmakta");
@@ -84,6 +84,7 @@ namespace CarService_API.Controllers
                     await _context.Users.AddAsync(u);
                 }
                 await _context.SaveChangesAsync();
+                _cache.Remove("users");
                 string token = _extentsion.CreateToken(u.Id, (u.Companyid ?? 0m), u.Usertype);
                 if (string.IsNullOrEmpty(token))
                 {
@@ -104,7 +105,6 @@ namespace CarService_API.Controllers
                         Mail = u.Mail
                     }
                 });
-                _cache.Remove("users");
             }
             catch (Exception ex)
             {
@@ -121,8 +121,13 @@ namespace CarService_API.Controllers
                 {
                     throw new Exception("Parametre hatalı");
                 }
-                var u = await _context.Users.AsNoTracking().Where(x => x.Mail == model.mail.Trim() && x.Active == "Y").Include(x => x.Company)
-                    .FirstOrDefaultAsync(x => x.Usertype == "C" || (x.Company != null && x.Company.Active == "Y"));
+                var _users = _cache.Get<List<User>>("users");
+                if (_users == null)
+                {
+                    _users = await _context.Users.AsNoTracking().Include(x => x.Company).ToListAsync();
+                    _cache.Set("users", _users);
+                }
+                var u = _users.FirstOrDefault(x => x.Mail.ToLower() == model.mail.Trim().ToLower() && x.Active == "Y" && (x.Usertype == "C" || (x.Company != null && x.Company.Active == "Y")));
                 if (u == null)
                 {
                     throw new Exception("Mail adresi ya da şifre yanlış");

@@ -19,6 +19,8 @@ public partial class Companyworkdetail
 
     public decimal? Price { get; set; }
 
+    public string? Active { get; set; }
+
     public virtual Companywork Companywork { get; set; } = null!;
 
     public virtual User User { get; set; } = null!;

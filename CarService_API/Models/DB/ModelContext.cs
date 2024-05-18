@@ -6,13 +6,16 @@ namespace CarService_API.Models.DB;
 
 public partial class ModelContext : DbContext
 {
-    public ModelContext()
+    IConfiguration _configuration;
+    public ModelContext(IConfiguration configuration)
     {
+        _configuration = configuration;
     }
 
-    public ModelContext(DbContextOptions<ModelContext> options)
+    public ModelContext(DbContextOptions<ModelContext> options, IConfiguration configuration)
         : base(options)
     {
+        _configuration = configuration;
     }
 
     public virtual DbSet<Avaliabledate> Avaliabledates { get; set; }
@@ -42,8 +45,7 @@ public partial class ModelContext : DbContext
     public virtual DbSet<Userdateoffer> Userdateoffers { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseOracle("User Id=car;Password=admin;Data Source=localhost:1521/xepdb1;");
+      => optionsBuilder.UseLazyLoadingProxies().UseOracle(_configuration.GetConnectionString(_configuration["DATABASE"]));
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -185,6 +187,12 @@ public partial class ModelContext : DbContext
                 .ValueGeneratedOnAdd()
                 .HasColumnType("NUMBER")
                 .HasColumnName("ID");
+            entity.Property(e => e.Active)
+                .HasMaxLength(1)
+                .IsUnicode(false)
+                .HasDefaultValueSql("'Y' ")
+                .IsFixedLength()
+                .HasColumnName("ACTIVE");
             entity.Property(e => e.Cdate)
                 .HasPrecision(6)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
