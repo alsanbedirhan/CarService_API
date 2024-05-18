@@ -35,47 +35,8 @@ namespace CarService_API.Controllers
         }
         public class clsWorkUser : clsSearchUser
         {
-            public decimal id { get; set; }
+            public decimal idno { get; set; }
             public string mail { get; set; }
-        }
-        public class clsSearchCar
-        {
-            public List<decimal> MakeIds { get; set; }
-            public List<decimal> MakeModelIds { get; set; }
-        }
-        [HttpPost("cars")]
-        public async Task<IActionResult> AllCars([FromBody] clsSearchCar input)
-        {
-            try
-            {
-                if (input == null)
-                {
-                    throw new Exception("Hata oluştu");
-                }
-                var u = _extentsion.GetTokenValues();
-                if (u == null)
-                {
-                    throw new Exception("Hata oluştu");
-                }
-
-                var l = await _context.Usercars.AsNoTracking().Include(x => x.Makemodel).Where(x => x.Userid == u.UserId &&
-                (input.MakeModelIds.Any() ? input.MakeIds.Contains(x.Makemodelid) : (input.MakeIds.Any() ? input.MakeIds.Contains(x.Makemodel.Makeid) : true)))
-                    .Select(x => new clsCars
-                    {
-                        Idno = x.Id,
-                        Marka = x.Makemodel.Make.Explanation,
-                        Model = x.Makemodel.Explanation,
-                        ModelId = x.Makemodelid,
-                        Plaka = x.Plate,
-                        Yil = x.Pyear ?? 0
-                    }).OrderByDescending(x => x.Idno).ToListAsync();
-
-                return Ok(new ResultModel<List<clsCars>> { Status = true, Data = l });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new ResultModel { Status = false, Message = ex.Message });
-            }
         }
         [HttpPost("allusers")]
         public async Task<IActionResult> AllUsers([FromBody] clsSearchUser input)
@@ -127,13 +88,13 @@ namespace CarService_API.Controllers
                 {
                     throw new Exception("Mail adresi hatalı");
                 }
-                if (input.id != u.UserId && u.UserType != "A")
+                if (input.idno != u.UserId && u.UserType != "A")
                 {
                     throw new Exception("Yetkiniz bulunamadı");
                 }
-                if (input.id > 0)
+                if (input.idno > 0)
                 {
-                    var f = await _context.Users.FirstOrDefaultAsync(x => x.Id == input.id && x.Active == "Y");
+                    var f = await _context.Users.FirstOrDefaultAsync(x => x.Id == input.idno && x.Active == "Y");
                     if (f == null)
                     {
                         throw new Exception("Kullanıcı bulunamadı");
@@ -153,6 +114,7 @@ namespace CarService_API.Controllers
                         {
                             Active = "Y",
                             Cdate = DateTime.Now,
+                            Cuser = u.UserId,
                             Companyid = u.CompanyId,
                             Name = input.ad,
                             Surname = input.soyad,
