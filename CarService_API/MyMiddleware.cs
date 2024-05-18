@@ -14,10 +14,6 @@ namespace CarService_API
         {
             _nextMiddleWare = next;
         }
-        class clsUserIds
-        {
-            public decimal UserId { get; set; }
-        }
         public async Task Invoke(HttpContext context)
         {
             try
@@ -36,14 +32,13 @@ namespace CarService_API
                     if (!IgnorePaths.Contains(context.Request.Path.Value))
                     {
                         s = _extention.GetTokenValues();
-                        var _users = _cache.Get<List<clsUserIds>>("users");
+                        var _users = _cache.Get<List<User>>("users");
                         if (_users == null)
                         {
-                            _users = await _tcontext.Users.AsNoTracking().Include(x => x.Company).Where(x => x.Active == "Y" &&
-                            (x.Company != null ? x.Company.Active == "Y" : true)).Select(x => new clsUserIds { UserId = x.Id }).ToListAsync();
+                            _users = await _tcontext.Users.AsNoTracking().Include(x => x.Company).ToListAsync();
                             _cache.Set("users", _users);
                         }
-                        if (s == null || !_users.Any(x => x.UserId == s.UserId))
+                        if (s == null || !_users.Any(x => x.Id == s.UserId))
                         {
                             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                             return;

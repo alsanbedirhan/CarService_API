@@ -6,16 +6,13 @@ namespace CarService_API.Models.DB;
 
 public partial class ModelContext : DbContext
 {
-    IConfiguration _configuration;
-    public ModelContext(IConfiguration configuration)
+    public ModelContext()
     {
-        _configuration = configuration;
     }
 
-    public ModelContext(DbContextOptions<ModelContext> options, IConfiguration configuration)
+    public ModelContext(DbContextOptions<ModelContext> options)
         : base(options)
     {
-        _configuration = configuration;
     }
 
     public virtual DbSet<Avaliabledate> Avaliabledates { get; set; }
@@ -23,6 +20,10 @@ public partial class ModelContext : DbContext
     public virtual DbSet<Avaliableday> Avaliabledays { get; set; }
 
     public virtual DbSet<Company> Companies { get; set; }
+
+    public virtual DbSet<Companywork> Companyworks { get; set; }
+
+    public virtual DbSet<Companyworkdetail> Companyworkdetails { get; set; }
 
     public virtual DbSet<Make> Makes { get; set; }
 
@@ -41,7 +42,8 @@ public partial class ModelContext : DbContext
     public virtual DbSet<Userdateoffer> Userdateoffers { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-      => optionsBuilder.UseLazyLoadingProxies().UseOracle(_configuration.GetConnectionString(_configuration["DATABASE"]));
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+        => optionsBuilder.UseOracle("User Id=car;Password=admin;Data Source=localhost:1521/xepdb1;");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -121,6 +123,98 @@ public partial class ModelContext : DbContext
                 .HasMaxLength(500)
                 .HasDefaultValueSql("1")
                 .HasColumnName("COMPANYNAME");
+        });
+
+        modelBuilder.Entity<Companywork>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("SYS_C008323");
+
+            entity.ToTable("COMPANYWORKS");
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedOnAdd()
+                .HasColumnType("NUMBER")
+                .HasColumnName("ID");
+            entity.Property(e => e.Active)
+                .HasMaxLength(1)
+                .IsUnicode(false)
+                .HasDefaultValueSql("'Y'")
+                .IsFixedLength()
+                .HasColumnName("ACTIVE");
+            entity.Property(e => e.Cdate)
+                .HasPrecision(6)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("CDATE");
+            entity.Property(e => e.Companyid)
+                .HasColumnType("NUMBER")
+                .HasColumnName("COMPANYID");
+            entity.Property(e => e.Cuser)
+                .HasColumnType("NUMBER")
+                .HasColumnName("CUSER");
+            entity.Property(e => e.Explanation)
+                .HasMaxLength(500)
+                .HasColumnName("EXPLANATION");
+            entity.Property(e => e.Isdone)
+                .HasMaxLength(1)
+                .IsUnicode(false)
+                .HasDefaultValueSql("'N'")
+                .IsFixedLength()
+                .HasColumnName("ISDONE");
+            entity.Property(e => e.Usercarid)
+                .HasColumnType("NUMBER")
+                .HasColumnName("USERCARID");
+
+            entity.HasOne(d => d.Company).WithMany(p => p.Companyworks)
+                .HasForeignKey(d => d.Companyid)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("COMPANYWORKS_COMPANIES_FK");
+
+            entity.HasOne(d => d.Usercar).WithMany(p => p.Companyworks)
+                .HasForeignKey(d => d.Usercarid)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("COMPANYWORKS_USERCARS_FK");
+        });
+
+        modelBuilder.Entity<Companyworkdetail>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("SYS_C008332");
+
+            entity.ToTable("COMPANYWORKDETAILS");
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedOnAdd()
+                .HasColumnType("NUMBER")
+                .HasColumnName("ID");
+            entity.Property(e => e.Cdate)
+                .HasPrecision(6)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("CDATE");
+            entity.Property(e => e.Companyworkid)
+                .HasColumnType("NUMBER")
+                .HasColumnName("COMPANYWORKID");
+            entity.Property(e => e.Cuser)
+                .HasColumnType("NUMBER")
+                .HasColumnName("CUSER");
+            entity.Property(e => e.Explanation)
+                .HasMaxLength(500)
+                .HasColumnName("EXPLANATION");
+            entity.Property(e => e.Price)
+                .HasDefaultValueSql("0\r\n")
+                .HasColumnType("NUMBER(15,2)")
+                .HasColumnName("PRICE");
+            entity.Property(e => e.Userid)
+                .HasColumnType("NUMBER")
+                .HasColumnName("USERID");
+
+            entity.HasOne(d => d.Companywork).WithMany(p => p.Companyworkdetails)
+                .HasForeignKey(d => d.Companyworkid)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("COMPANYWORKDETAILS_COMPANYWORKS_FK");
+
+            entity.HasOne(d => d.User).WithMany(p => p.Companyworkdetails)
+                .HasForeignKey(d => d.Userid)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("COMPANYWORKDETAILS_USERS_FK");
         });
 
         modelBuilder.Entity<Make>(entity =>
@@ -315,6 +409,12 @@ public partial class ModelContext : DbContext
                 .ValueGeneratedOnAdd()
                 .HasColumnType("NUMBER")
                 .HasColumnName("ID");
+            entity.Property(e => e.Active)
+                .HasMaxLength(1)
+                .IsUnicode(false)
+                .HasDefaultValueSql("'Y' ")
+                .IsFixedLength()
+                .HasColumnName("ACTIVE");
             entity.Property(e => e.Cdate)
                 .HasPrecision(6)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
@@ -332,7 +432,7 @@ public partial class ModelContext : DbContext
                 .HasMaxLength(100)
                 .HasColumnName("PLATE");
             entity.Property(e => e.Pyear)
-                .HasPrecision(4)
+                .HasPrecision(5)
                 .HasColumnName("PYEAR");
             entity.Property(e => e.Uniquekey)
                 .HasMaxLength(500)

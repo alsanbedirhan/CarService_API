@@ -177,15 +177,20 @@ namespace CarService_API
     {
         public List<clsSearch> Details { get; set; }
     }
-    public class LoginResultUser
+
+    public class UserInfo
     {
         public decimal UserId { get; set; }
         public string UserType { get; set; }
-        public string CompanyName { get; set; }
         public string Mail { get; set; }
-        public decimal CompanyId { get; set; }
         public string Ad { get; set; }
         public string Soyad { get; set; }
+        public DateTime Cdate { get; set; }
+    }
+    public class LoginResultUser : UserInfo
+    {
+        public string CompanyName { get; set; }
+        public decimal CompanyId { get; set; }
         public string Token { get; set; }
     }
     public class RequestModel

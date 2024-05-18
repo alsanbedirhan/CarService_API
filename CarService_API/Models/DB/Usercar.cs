@@ -19,9 +19,13 @@ public partial class Usercar
 
     public string? Plate { get; set; }
 
-    public byte? Pyear { get; set; }
+    public short? Pyear { get; set; }
 
     public string? Explanation { get; set; }
+
+    public string? Active { get; set; }
+
+    public virtual ICollection<Companywork> Companyworks { get; set; } = new List<Companywork>();
 
     public virtual Makemodel Makemodel { get; set; } = null!;
 

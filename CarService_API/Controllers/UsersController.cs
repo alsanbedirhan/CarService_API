@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
-using static CarService_API.Controllers.CarsController;
 
 namespace CarService_API.Controllers
 {
@@ -18,19 +17,25 @@ namespace CarService_API.Controllers
             _extentsion = extentsion;
             _cache = cache;
         }
-        public class clsUsers
-        {
-            public decimal Idno { get; set; }
-            public string Ad { get; set; }
-            public string Soyad { get; set; }
-            public string Mail { get; set; }
-            public string Tip { get; set; }
-            public DateTime Cdate { get; set; }
-        }
-        public class clsSearchUser
+        public class clsSearchUserInfo
         {
             public string ad { get; set; }
             public string soyad { get; set; }
+        }
+        public class clsSearchCustomer : clsSearchUserInfo
+        {
+            public string mail { get; set; }
+        }
+        public class clsSearchCustomerCar
+        {
+            public decimal UserId { get; set; }
+            public decimal MakeId { get; set; }
+            public decimal MakeModelId { get; set; }
+            public string Plaka { get; set; }
+            public short Yil { get; set; }
+        }
+        public class clsSearchUser : clsSearchUserInfo
+        {
             public string usertype { get; set; }
         }
         public class clsWorkUser : clsSearchUser
@@ -38,8 +43,22 @@ namespace CarService_API.Controllers
             public decimal idno { get; set; }
             public string mail { get; set; }
         }
-        [HttpPost("allusers")]
-        public async Task<IActionResult> AllUsers([FromBody] clsSearchUser input)
+        public class Customer
+        {
+            public decimal Idno { get; set; }
+            public string AdSoyad { get; set; }
+            public string Mail { get; set; }
+        }
+        public class UserCar
+        {
+            public decimal Idno { get; set; }
+            public string Marka { get; set; }
+            public string Model { get; set; }
+            public decimal MarkaModelId { get; set; }
+            public string Plaka { get; set; }
+        }
+        [HttpPost("companyusers")]
+        public async Task<IActionResult> CompanyUsers([FromBody] clsSearchUser input)
         {
             try
             {
@@ -49,21 +68,109 @@ namespace CarService_API.Controllers
                     throw new Exception("Hata oluştu");
                 }
 
-                var l = await _context.Users.AsNoTracking().Where(x => x.Companyid == u.CompanyId && x.Active == "Y" &&
+                var users = _cache.Get<List<User>>("users");
+                if (users == null)
+                {
+                    users = await _context.Users.Include(x => x.Company).AsNoTracking().ToListAsync();
+                    _cache.Set("users", users);
+                }
+
+                var l = users.Where(x => x.Companyid == u.CompanyId && x.Active == "Y" &&
                 (input != null && !string.IsNullOrEmpty(input.ad) ? x.Name.ToLower().Contains(input.ad.ToLower()) : true) &&
                 (input != null && !string.IsNullOrEmpty(input.soyad) ? x.Surname.ToLower().Contains(input.soyad.ToLower()) : true) &&
                 (input != null && !string.IsNullOrEmpty(input.usertype) ? x.Usertype == input.usertype : true))
-                    .Select(x => new clsUsers
+                    .Select(x => new UserInfo
                     {
                         Ad = x.Name,
                         Soyad = x.Surname,
                         Mail = x.Mail,
                         Cdate = x.Cdate ?? DateTime.MinValue,
-                        Idno = x.Id,
-                        Tip = x.Usertype
-                    }).OrderByDescending(x => x.Cdate).ToListAsync();
+                        UserId = x.Id,
+                        UserType = x.Usertype
+                    }).OrderByDescending(x => x.Cdate).ToList();
 
-                return Ok(new ResultModel<List<clsUsers>> { Status = true, Data = l });
+                return Ok(new ResultModel<List<UserInfo>> { Status = true, Data = l });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ResultModel { Status = false, Message = ex.Message });
+            }
+        }
+
+        [HttpPost("searchcustomer")]
+        public async Task<IActionResult> Customers([FromBody] clsSearchCustomer input)
+        {
+            try
+            {
+                if (input == null || (string.IsNullOrEmpty(input.ad?.Trim() ?? "") && string.IsNullOrEmpty(input.soyad?.Trim() ?? "") && string.IsNullOrEmpty(input.mail?.Trim() ?? "")))
+                {
+                    throw new Exception("Koşul girmelisiniz");
+                }
+                var u = _extentsion.GetTokenValues();
+                if (u == null || u.UserType == "C")
+                {
+                    throw new Exception("Hata oluştu");
+                }
+                input.ad = input.ad?.Trim() ?? "";
+                input.soyad = input.soyad?.Trim() ?? "";
+                input.mail = input.mail?.Trim() ?? "";
+
+                var users = _cache.Get<List<User>>("users");
+                if (users == null)
+                {
+                    users = await _context.Users.Include(x => x.Company).AsNoTracking().ToListAsync();
+                    _cache.Set("users", users);
+                }
+
+                var l = users.Where(x => x.Usertype == "C" && x.Active == "Y" &&
+                (!string.IsNullOrEmpty(input.ad) ? x.Name.Contains(input.ad, StringComparison.CurrentCultureIgnoreCase) : true) &&
+                (!string.IsNullOrEmpty(input.soyad) ? x.Surname.Contains(input.soyad, StringComparison.CurrentCultureIgnoreCase) : true) &&
+                (!string.IsNullOrEmpty(input.mail) ? x.Mail.Contains(input.mail) : true))
+                    .Select(x => new Customer
+                    {
+                        Idno = x.Id,
+                        AdSoyad = string.Concat(x.Name, " ", x.Surname),
+                        Mail = x.Mail
+                    }).OrderBy(x => x.AdSoyad).Take(10).ToList();
+
+                return Ok(new ResultModel<List<Customer>> { Status = true, Data = l });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ResultModel { Status = false, Message = ex.Message });
+            }
+        }
+
+        [HttpPost("searchcustomercars")]
+        public async Task<IActionResult> CustomerCars([FromBody] clsSearchCustomerCar input)
+        {
+            try
+            {
+                if (input == null || input.UserId <= 0)
+                {
+                    throw new Exception("Hata oluştu");
+                }
+                var u = _extentsion.GetTokenValues();
+                if (u == null || u.UserType == "C")
+                {
+                    throw new Exception("Hata oluştu");
+                }
+                input.Plaka = input.Plaka?.Trim() ?? "";
+
+                var l = _context.Usercars.Include(x => x.Makemodel.Make).AsNoTracking().Where(x => x.Userid == input.UserId && x.Active == "Y" &&
+                (!string.IsNullOrEmpty(input.Plaka) && !string.IsNullOrEmpty(x.Plate) ? x.Plate.Contains(input.Plaka, StringComparison.CurrentCultureIgnoreCase) : true) &&
+                (input.MakeModelId > 0 ? x.Makemodelid == input.MakeModelId : (input.MakeId > 0 ? input.MakeId == x.Makemodel.Makeid : true)) &&
+                (input.Yil > 0 ? input.Yil == x.Pyear : true))
+                    .Select(x => new UserCar
+                    {
+                        Marka = x.Makemodel.Make.Explanation ?? "",
+                        Model = x.Makemodel.Explanation ?? "",
+                        MarkaModelId = x.Makemodelid,
+                        Idno = x.Id,
+                        Plaka = x.Plate ?? ""
+                    }).Take(10).ToList();
+
+                return Ok(new ResultModel<List<UserCar>> { Status = true, Data = l });
             }
             catch (Exception ex)
             {
@@ -88,7 +195,7 @@ namespace CarService_API.Controllers
                 {
                     throw new Exception("Mail adresi hatalı");
                 }
-                if (input.idno != u.UserId && u.UserType != "A")
+                if (input.idno != u.UserId && u.UserType == "C")
                 {
                     throw new Exception("Yetkiniz bulunamadı");
                 }
@@ -115,7 +222,7 @@ namespace CarService_API.Controllers
                             Active = "Y",
                             Cdate = DateTime.Now,
                             Cuser = u.UserId,
-                            Companyid = u.CompanyId,
+                            Companyid = input.usertype != "C" ? u.CompanyId : null,
                             Name = input.ad,
                             Surname = input.soyad,
                             Mail = input.mail,
@@ -131,6 +238,8 @@ namespace CarService_API.Controllers
                     else
                     {
                         f.Active = "Y";
+                        f.Passhash = passwordHash;
+                        f.Passsalt = passwordSalt;
                     }
                     await _context.Requestlogs.AddAsync(new Requestlog
                     {

@@ -11,29 +11,26 @@ namespace CarService_API.Controllers
     {
         ModelContext _context;
         Extentsion _extentsion;
-        public CarsController(ModelContext context, Extentsion extentsion)
+        IMemoryCache _cache;
+        public CarsController(ModelContext context, Extentsion extentsion, IMemoryCache cache)
         {
             _context = context;
             _extentsion = extentsion;
+            _cache = cache;
         }
         public class clsWorkCar
         {
             public decimal Idno { get; set; }
             public decimal ModelId { get; set; }
-            public byte Yil { get; set; }
+            public short Yil { get; set; }
             public string Plaka { get; set; }
             public decimal UserId { get; set; }
         }
-        public class clsCars
+        public class clsCars : clsWorkCar
         {
-            public decimal Idno { get; set; }
-            public decimal ModelId { get; set; }
             public decimal MarkaId { get; set; }
-            public decimal UserId { get; set; }
             public string Marka { get; set; }
             public string Model { get; set; }
-            public byte Yil { get; set; }
-            public string Plaka { get; set; }
         }
         public class clsSearchCar
         {
@@ -56,9 +53,8 @@ namespace CarService_API.Controllers
                 {
                     throw new Exception("Hata oluştu");
                 }
-
                 var l = await _context.Usercars.AsNoTracking().Include(x => x.Makemodel).Where(x => x.Userid == input.UserId &&
-                (input.MakeModelIds.Any() ? input.MakeIds.Contains(x.Makemodelid) : (input.MakeIds.Any() ? input.MakeIds.Contains(x.Makemodel.Makeid) : true)))
+                (input.MakeModelIds.Any() ? input.MakeModelIds.Contains(x.Makemodelid) : (input.MakeIds.Any() ? input.MakeIds.Contains(x.Makemodel.Makeid) : true)))
                     .Select(x => new clsCars
                     {
                         Idno = x.Id,
@@ -88,13 +84,18 @@ namespace CarService_API.Controllers
                 {
                     throw new Exception("Hata oluştu");
                 }
-
-                var l = await _context.Makes.Include(x => x.Makemodels).AsNoTracking().Select(x => new clsSearchDetail
+                var makes = _cache.Get<List<Make>>("makemodels");
+                if (makes == null)
+                {
+                    makes = await _context.Makes.Include(x => x.Makemodels).AsNoTracking().ToListAsync();
+                    _cache.Set("makes", makes);
+                }
+                var l = makes.Select(x => new clsSearchDetail
                 {
                     Key = x.Id,
                     DisplayValue = x.Explanation,
                     Details = x.Makemodels.Select(y => new clsSearch { Key = y.Id, DisplayValue = y.Explanation }).ToList()
-                }).ToListAsync();
+                }).ToList();
 
                 return Ok(new ResultModel<List<clsSearchDetail>> { Status = true, Data = l });
             }
@@ -110,7 +111,7 @@ namespace CarService_API.Controllers
             try
             {
                 var u = _extentsion.GetTokenValues();
-                if (u == null || input == null || input.ModelId <= 0 || u.UserId <= 0)
+                if (u == null || input == null || input.ModelId <= 0 || u.UserId <= 0 || string.IsNullOrEmpty(input.Plaka) || Convert.ToInt32(input.Yil) <= 1900)
                 {
                     throw new Exception("Hata oluştu");
                 }
@@ -135,7 +136,7 @@ namespace CarService_API.Controllers
                 {
                     await _context.Usercars.AddAsync(new Models.DB.Usercar
                     {
-                        Userid = u.UserId,
+                        Userid = input.UserId,
                         Makemodelid = input.ModelId,
                         Plate = input.Plaka,
                         Pyear = input.Yil,
