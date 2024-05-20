@@ -74,6 +74,7 @@ namespace CarService_API.Controllers
                 return BadRequest(new ResultModel { Status = false, Message = ex.Message });
             }
         }
+
         [HttpGet("makemodels")]
         public async Task<IActionResult> Makes()
         {

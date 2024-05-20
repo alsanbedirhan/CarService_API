@@ -157,7 +157,7 @@ namespace CarService_API.Controllers
                 }
                 input.Plaka = input.Plaka?.Trim() ?? "";
 
-                var l = _context.Usercars.Include(x => x.Makemodel.Make).AsNoTracking().Where(x => x.Userid == input.UserId && x.Active == "Y" &&
+                var l = await _context.Usercars.Include(x => x.Makemodel.Make).AsNoTracking().Where(x => !x.Companyworks.Any(y => y.Isout != "Y" && y.Isdone != "Y") && x.Userid == input.UserId && x.Active == "Y" &&
                 (!string.IsNullOrEmpty(input.Plaka) ? x.Plate != null && x.Plate.ToLower().Contains(input.Plaka.ToLower()) : true) &&
                 (input.MakeModelId > 0 ? x.Makemodelid == input.MakeModelId : (input.MakeId > 0 ? input.MakeId == x.Makemodel.Makeid : true)) &&
                 (input.Yil > 0 ? input.Yil == x.Pyear : true))
@@ -168,7 +168,7 @@ namespace CarService_API.Controllers
                         MarkaModelId = x.Makemodelid,
                         Idno = x.Id,
                         Plaka = x.Plate ?? ""
-                    }).Take(10).ToList();
+                    }).Take(10).ToListAsync();
 
                 return Ok(new ResultModel<List<UserCar>> { Status = true, Data = l });
             }

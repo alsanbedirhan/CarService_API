@@ -21,6 +21,8 @@ public partial class Companywork
 
     public string? Explanation { get; set; }
 
+    public string? Isout { get; set; }
+
     public virtual Company Company { get; set; } = null!;
 
     public virtual ICollection<Companyworkdetail> Companyworkdetails { get; set; } = new List<Companyworkdetail>();

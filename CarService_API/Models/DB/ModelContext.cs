@@ -162,6 +162,12 @@ public partial class ModelContext : DbContext
                 .HasDefaultValueSql("'N'")
                 .IsFixedLength()
                 .HasColumnName("ISDONE");
+            entity.Property(e => e.Isout)
+                .HasMaxLength(1)
+                .IsUnicode(false)
+                .HasDefaultValueSql("'N'")
+                .IsFixedLength()
+                .HasColumnName("ISOUT");
             entity.Property(e => e.Usercarid)
                 .HasColumnType("NUMBER")
                 .HasColumnName("USERCARID");
