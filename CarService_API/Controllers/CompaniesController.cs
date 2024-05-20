@@ -20,14 +20,13 @@ namespace CarService_API.Controllers
             public decimal UserCarId { get; set; }
             public string Aciklama { get; set; }
         }
-        public class clsSearchCompanyWork
+        public class clsSearchCompanyWork : clsCompanyWorkList
         {
-            public string Ad { get; set; }
-            public string Soyad { get; set; }
-            public decimal MakeId { get; set; }
-            public decimal MakeModelId { get; set; }
             public string Plaka { get; set; }
             public string Isdone { get; set; }
+            public string Isout { get; set; }
+            public DateTime StartDate { get; set; } = DateTime.MinValue;
+            public DateTime EndDate { get; set; } = DateTime.MinValue;
         }
         public class SearchCompanyWorkList
         {
@@ -37,6 +36,7 @@ namespace CarService_API.Controllers
             public string Marka { get; set; }
             public string Model { get; set; }
             public string Plaka { get; set; }
+            public decimal TotalPrice { get; set; }
         }
         public class CompanyWorkDetail
         {
@@ -50,6 +50,7 @@ namespace CarService_API.Controllers
         }
         public class clsCompanyWorkDetail
         {
+            public decimal Idno { get; set; }
             public decimal CompanyWorkId { get; set; }
             public decimal Price { get; set; }
             public string Aciklama { get; set; }
@@ -57,6 +58,19 @@ namespace CarService_API.Controllers
         public class clsIdno
         {
             public decimal Idno { get; set; }
+        }
+        public class clsCompanyWorkList
+        {
+            public string Ad { get; set; }
+            public string Soyad { get; set; }
+            public decimal MakeId { get; set; }
+            public decimal MakeModelId { get; set; }
+        }
+        public class clsUpdateStatus
+        {
+            public decimal Idno { get; set; }
+            public string Isdone { get; set; }
+            public string Isout { get; set; }
         }
         [HttpPost("serviceentry")]
         public async Task<IActionResult> Entry([FromBody] clsSaveEntry input)
@@ -104,7 +118,7 @@ namespace CarService_API.Controllers
                     throw new Exception("Hata oluştu");
                 }
                 var u = _extentsion.GetTokenValues();
-                if (u == null || u.UserType == "C")
+                if (u == null)
                 {
                     throw new Exception("Hata oluştu");
                 }
@@ -112,11 +126,16 @@ namespace CarService_API.Controllers
                 input.Soyad = input.Soyad?.Trim() ?? "";
                 input.Plaka = input.Plaka?.Trim() ?? "";
                 var l = await _context.Companyworks.Include(x => x.Usercar.Makemodel.Make).Include(x => x.Usercar.User).AsNoTracking()
-                    .Where(x => x.Active == "Y" && x.Isdone == input.Isdone &&
+                    .Where(x => x.Active == "Y" &&
                     (input.MakeModelId > 0 ? input.MakeModelId == x.Usercar.Makemodelid : input.MakeId > 0 ? input.MakeId == x.Usercar.Makemodel.Makeid : true) &&
+                    (u.UserType == "C" ? x.Usercar.Userid == u.UserId : x.Companyid == u.CompanyId) &&
                     (!string.IsNullOrEmpty(input.Ad) ? x.Usercar.User.Name.ToLower().Contains(input.Ad.ToLower()) : true) &&
                     (!string.IsNullOrEmpty(input.Soyad) ? x.Usercar.User.Surname.ToLower().Contains(input.Soyad.ToLower()) : true) &&
-                    (!string.IsNullOrEmpty(input.Plaka) ? x.Usercar.Plate != null && x.Usercar.Plate.ToLower().Contains(input.Plaka.ToLower()) : true))
+                    (!string.IsNullOrEmpty(input.Plaka) ? x.Usercar.Plate != null && x.Usercar.Plate.ToLower().Contains(input.Plaka.ToLower()) : true) &&
+                    (!string.IsNullOrEmpty(input.Isdone) ? x.Isdone == input.Isdone : true) &&
+                    (!string.IsNullOrEmpty(input.Isout) ? x.Isout == input.Isout : true) &&
+                    (input.StartDate.Year > 2010 ? x.Cdate >= input.StartDate : true) &&
+                    (input.EndDate.Year > 2010 ? x.Cdate < input.EndDate : true))
                     .Select(x => new SearchCompanyWorkList
                     {
                         Ad = x.Usercar.User.Name,
@@ -124,7 +143,8 @@ namespace CarService_API.Controllers
                         Idno = x.Id,
                         Marka = x.Usercar.Makemodel.Make.Explanation ?? "",
                         Model = x.Usercar.Makemodel.Explanation ?? "",
-                        Plaka = x.Usercar.Plate ?? ""
+                        Plaka = x.Usercar.Plate ?? "",
+                        TotalPrice = x.Companyworkdetails.Where(y => y.Active == "Y").Sum(y => y.Price) ?? 0m
                     }).ToListAsync();
 
                 return Ok(new ResultModel<List<SearchCompanyWorkList>> { Status = true, Data = l });
@@ -168,8 +188,8 @@ namespace CarService_API.Controllers
                 return BadRequest(new ResultModel { Status = false, Message = ex.Message });
             }
         }
-        [HttpPost("adddetail")]
-        public async Task<IActionResult> Add([FromBody] clsCompanyWorkDetail input)
+        [HttpPost("workdetail")]
+        public async Task<IActionResult> Work([FromBody] clsCompanyWorkDetail input)
         {
             try
             {
@@ -182,20 +202,33 @@ namespace CarService_API.Controllers
                 {
                     throw new Exception("Hata oluştu");
                 }
-                if (!(await _context.Companyworks.AnyAsync(x => x.Id == input.CompanyWorkId && x.Active == "Y" && x.Isdone == "N")))
+                if (input.Idno > 0)
                 {
-                    throw new Exception("Kayıt bulunamadı");
+                    var r = await _context.Companyworkdetails.FirstOrDefaultAsync(x => x.Id == input.Idno && x.Active == "Y");
+                    if (r == null)
+                    {
+                        throw new Exception("Kayıt bulunamadı");
+                    }
+                    r.Price = input.Price;
+                    r.Explanation = input.Aciklama?.Trim() ?? "";
                 }
-                await _context.Companyworkdetails.AddAsync(new Companyworkdetail
+                else
                 {
-                    Companyworkid = input.CompanyWorkId,
-                    Cdate = DateTime.Now,
-                    Cuser = u.UserId,
-                    Explanation = input.Aciklama?.Trim() ?? "",
-                    Price = input.Price,
-                    Userid = u.UserId,
-                    Active = "Y"
-                });
+                    if (!(await _context.Companyworks.AnyAsync(x => x.Id == input.CompanyWorkId && x.Active == "Y" && x.Isdone == "N")))
+                    {
+                        throw new Exception("Kayıt bulunamadı");
+                    }
+                    await _context.Companyworkdetails.AddAsync(new Companyworkdetail
+                    {
+                        Companyworkid = input.CompanyWorkId,
+                        Cdate = DateTime.Now,
+                        Cuser = u.UserId,
+                        Explanation = input.Aciklama?.Trim() ?? "",
+                        Price = input.Price,
+                        Userid = u.UserId,
+                        Active = "Y"
+                    });
+                }
                 await _context.SaveChangesAsync();
 
                 return Ok(new ResultModel { Status = true });
@@ -230,6 +263,36 @@ namespace CarService_API.Controllers
                 }
                 r.Active = "N";
                 await _context.SaveChangesAsync();
+                return Ok(new ResultModel { Status = true });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ResultModel { Status = false, Message = ex.Message });
+            }
+        }
+        [HttpPost("status")]
+        public async Task<IActionResult> Status([FromBody] clsUpdateStatus input)
+        {
+            try
+            {
+                if (input == null || input.Idno <= 0)
+                {
+                    throw new Exception("Hata oluştu");
+                }
+                var u = _extentsion.GetTokenValues();
+                if (u == null || u.UserType == "C")
+                {
+                    throw new Exception("Hata oluştu");
+                }
+                var r = await _context.Companyworks.FirstOrDefaultAsync(x => x.Id == input.Idno && x.Active == "Y");
+                if (r == null)
+                {
+                    throw new Exception("Kayıt bulunamadı");
+                }
+                r.Isdone = input.Isdone;
+                r.Isout = input.Isout;
+                await _context.SaveChangesAsync();
+
                 return Ok(new ResultModel { Status = true });
             }
             catch (Exception ex)
