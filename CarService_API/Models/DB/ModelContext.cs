@@ -18,10 +18,6 @@ public partial class ModelContext : DbContext
         _configuration = configuration;
     }
 
-    public virtual DbSet<Avaliabledate> Avaliabledates { get; set; }
-
-    public virtual DbSet<Avaliableday> Avaliabledays { get; set; }
-
     public virtual DbSet<Company> Companies { get; set; }
 
     public virtual DbSet<Companywork> Companyworks { get; set; }
@@ -36,13 +32,7 @@ public partial class ModelContext : DbContext
 
     public virtual DbSet<User> Users { get; set; }
 
-    public virtual DbSet<Userauth> Userauths { get; set; }
-
     public virtual DbSet<Usercar> Usercars { get; set; }
-
-    public virtual DbSet<Userdate> Userdates { get; set; }
-
-    public virtual DbSet<Userdateoffer> Userdateoffers { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
       => optionsBuilder.UseLazyLoadingProxies().UseOracle(_configuration.GetConnectionString(_configuration["DATABASE"]));
@@ -52,58 +42,6 @@ public partial class ModelContext : DbContext
         modelBuilder
             .HasDefaultSchema("CAR")
             .UseCollation("USING_NLS_COMP");
-
-        modelBuilder.Entity<Avaliabledate>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("SYS_C008249");
-
-            entity.ToTable("AVALIABLEDATES");
-
-            entity.Property(e => e.Id)
-                .ValueGeneratedOnAdd()
-                .HasColumnType("NUMBER")
-                .HasColumnName("ID");
-            entity.Property(e => e.Avaliablecount)
-                .HasPrecision(6)
-                .HasDefaultValueSql("0\r\n")
-                .HasColumnName("AVALIABLECOUNT");
-            entity.Property(e => e.Avaliabledate1)
-                .HasColumnType("DATE")
-                .HasColumnName("AVALIABLEDATE");
-            entity.Property(e => e.Companyid)
-                .HasColumnType("NUMBER")
-                .HasColumnName("COMPANYID");
-
-            entity.HasOne(d => d.Company).WithMany(p => p.Avaliabledates)
-                .HasForeignKey(d => d.Companyid)
-                .HasConstraintName("AVALIABLEDATES_COMPANIES_FK");
-        });
-
-        modelBuilder.Entity<Avaliableday>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("SYS_C008246");
-
-            entity.ToTable("AVALIABLEDAYS");
-
-            entity.Property(e => e.Id)
-                .ValueGeneratedOnAdd()
-                .HasColumnType("NUMBER")
-                .HasColumnName("ID");
-            entity.Property(e => e.Avaliablecount)
-                .HasPrecision(6)
-                .HasDefaultValueSql("0\r\n")
-                .HasColumnName("AVALIABLECOUNT");
-            entity.Property(e => e.Companyid)
-                .HasColumnType("NUMBER")
-                .HasColumnName("COMPANYID");
-            entity.Property(e => e.Daykey)
-                .HasPrecision(1)
-                .HasColumnName("DAYKEY");
-
-            entity.HasOne(d => d.Company).WithMany(p => p.Avaliabledays)
-                .HasForeignKey(d => d.Companyid)
-                .HasConstraintName("AVALIABLEDAYS_COMPANIES_FK");
-        });
 
         modelBuilder.Entity<Company>(entity =>
         {
@@ -370,49 +308,6 @@ public partial class ModelContext : DbContext
                 .HasConstraintName("USERS_COMPANIES_FK");
         });
 
-        modelBuilder.Entity<Userauth>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("SYS_C008284");
-
-            entity.ToTable("USERAUTHS");
-
-            entity.Property(e => e.Id)
-                .ValueGeneratedOnAdd()
-                .HasColumnType("NUMBER")
-                .HasColumnName("ID");
-            entity.Property(e => e.Active)
-                .HasMaxLength(1)
-                .IsUnicode(false)
-                .HasDefaultValueSql("'Y' ")
-                .IsFixedLength()
-                .HasColumnName("ACTIVE");
-            entity.Property(e => e.Authbit)
-                .HasPrecision(2)
-                .HasDefaultValueSql("0\r\n")
-                .HasColumnName("AUTHBIT");
-            entity.Property(e => e.Cdate)
-                .HasPrecision(6)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnName("CDATE");
-            entity.Property(e => e.Cuser)
-                .HasColumnType("NUMBER")
-                .HasColumnName("CUSER");
-            entity.Property(e => e.Udate)
-                .HasPrecision(6)
-                .HasColumnName("UDATE");
-            entity.Property(e => e.Userid)
-                .HasColumnType("NUMBER")
-                .HasColumnName("USERID");
-            entity.Property(e => e.Uuser)
-                .HasColumnType("NUMBER")
-                .HasColumnName("UUSER");
-
-            entity.HasOne(d => d.User).WithMany(p => p.Userauths)
-                .HasForeignKey(d => d.Userid)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("USERAUTHS_USERS_FK");
-        });
-
         modelBuilder.Entity<Usercar>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("SYS_C008315");
@@ -464,108 +359,6 @@ public partial class ModelContext : DbContext
                 .HasForeignKey(d => d.Userid)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("USERCARS_USERS_FK");
-        });
-
-        modelBuilder.Entity<Userdate>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("SYS_C008262");
-
-            entity.ToTable("USERDATES");
-
-            entity.Property(e => e.Id)
-                .ValueGeneratedOnAdd()
-                .HasColumnType("NUMBER")
-                .HasColumnName("ID");
-            entity.Property(e => e.Active)
-                .HasMaxLength(1)
-                .IsUnicode(false)
-                .HasDefaultValueSql("'Y'")
-                .IsFixedLength()
-                .HasColumnName("ACTIVE");
-            entity.Property(e => e.Approved)
-                .HasMaxLength(1)
-                .IsUnicode(false)
-                .HasDefaultValueSql("'N'")
-                .IsFixedLength()
-                .HasColumnName("APPROVED");
-            entity.Property(e => e.Carid)
-                .HasColumnType("NUMBER")
-                .HasColumnName("CARID");
-            entity.Property(e => e.Carok)
-                .HasMaxLength(1)
-                .IsUnicode(false)
-                .HasDefaultValueSql("'N' ")
-                .IsFixedLength()
-                .HasColumnName("CAROK");
-            entity.Property(e => e.Cdate)
-                .HasPrecision(6)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP \r\n")
-                .HasColumnName("CDATE");
-            entity.Property(e => e.Datevalue)
-                .HasColumnType("DATE")
-                .HasColumnName("DATEVALUE");
-            entity.Property(e => e.Explanation)
-                .HasMaxLength(1000)
-                .HasColumnName("EXPLANATION");
-            entity.Property(e => e.Userid)
-                .HasColumnType("NUMBER")
-                .HasColumnName("USERID");
-
-            entity.HasOne(d => d.User).WithMany(p => p.Userdates)
-                .HasForeignKey(d => d.Userid)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("USERDATES_USERS_FK");
-        });
-
-        modelBuilder.Entity<Userdateoffer>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("SYS_C008272");
-
-            entity.ToTable("USERDATEOFFERS");
-
-            entity.Property(e => e.Id)
-                .ValueGeneratedOnAdd()
-                .HasColumnType("NUMBER")
-                .HasColumnName("ID");
-            entity.Property(e => e.Astatus)
-                .HasMaxLength(1)
-                .IsUnicode(false)
-                .HasDefaultValueSql("'W'")
-                .IsFixedLength()
-                .HasColumnName("ASTATUS");
-            entity.Property(e => e.Cdate)
-                .HasPrecision(6)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnName("CDATE");
-            entity.Property(e => e.Companyid)
-                .HasColumnType("NUMBER")
-                .HasColumnName("COMPANYID");
-            entity.Property(e => e.Cuser)
-                .HasColumnType("NUMBER")
-                .HasColumnName("CUSER");
-            entity.Property(e => e.Explanation)
-                .HasMaxLength(1000)
-                .HasColumnName("EXPLANATION");
-            entity.Property(e => e.Userdateid)
-                .HasColumnType("NUMBER")
-                .HasColumnName("USERDATEID");
-            entity.Property(e => e.Userid)
-                .HasColumnType("NUMBER")
-                .HasColumnName("USERID");
-
-            entity.HasOne(d => d.Company).WithMany(p => p.Userdateoffers)
-                .HasForeignKey(d => d.Companyid)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("USERDATEOFFERS_COMPANIES_FK");
-
-            entity.HasOne(d => d.Userdate).WithMany(p => p.Userdateoffers)
-                .HasForeignKey(d => d.Userdateid)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("USERDATEOFFERS_USERDATES_FK");
-
-            entity.HasOne(d => d.User).WithMany(p => p.Userdateoffers)
-                .HasForeignKey(d => d.Userid)
-                .HasConstraintName("USERDATEOFFERS_USERS_FK");
         });
 
         OnModelCreatingPartial(modelBuilder);

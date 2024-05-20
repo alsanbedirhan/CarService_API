@@ -11,13 +11,7 @@ public partial class Company
 
     public string? Active { get; set; }
 
-    public virtual ICollection<Avaliabledate> Avaliabledates { get; set; } = new List<Avaliabledate>();
-
-    public virtual ICollection<Avaliableday> Avaliabledays { get; set; } = new List<Avaliableday>();
-
     public virtual ICollection<Companywork> Companyworks { get; set; } = new List<Companywork>();
-
-    public virtual ICollection<Userdateoffer> Userdateoffers { get; set; } = new List<Userdateoffer>();
 
     public virtual ICollection<User> Users { get; set; } = new List<User>();
 }
