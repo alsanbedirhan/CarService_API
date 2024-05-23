@@ -44,32 +44,32 @@ namespace CarService_API
                             return;
                         }
                     }
-                    string deviceid = _extention.GetDeviceId(), host = context.Connection.RemoteIpAddress?.ToString() ?? "",
-                        user_agent = _extention.GetUserAgent(), vs = _extention.GetVersion();
+                    //string deviceid = _extention.GetDeviceId(), host = context.Connection.RemoteIpAddress?.ToString() ?? "",
+                    //    user_agent = _extention.GetUserAgent(), vs = _extention.GetVersion();
 
-                    await Task.Run(() =>
-                    {
-                        try
-                        {
-                            var log = _cache.Get<List<RequestModel>>("LOG") ?? new List<RequestModel>();
-                            log.Add(new RequestModel
-                            {
-                                Path = context.Request.Path,
-                                UserId = s?.UserId ?? 0,
-                                Time = DateTime.Now.ToLocalTime(),
-                                CihazId = deviceid,
-                                AppVersion = vs,
-                                IpAdress = host,
-                                User_Agent = user_agent,
-                                Query = context.Request.QueryString.Value ?? "",
-                            });
-                            _cache.Set("LOG", log, TimeSpan.FromHours(1));
-                        }
-                        catch (Exception)
-                        {
+                    //await Task.Run(() =>
+                    //{
+                    //    try
+                    //    {
+                    //        var log = _cache.Get<List<RequestModel>>("LOG") ?? new List<RequestModel>();
+                    //        log.Add(new RequestModel
+                    //        {
+                    //            Path = context.Request.Path,
+                    //            UserId = s?.UserId ?? 0,
+                    //            Time = DateTime.Now.ToLocalTime(),
+                    //            CihazId = deviceid,
+                    //            AppVersion = vs,
+                    //            IpAdress = host,
+                    //            User_Agent = user_agent,
+                    //            Query = context.Request.QueryString.Value ?? "",
+                    //        });
+                    //        _cache.Set("LOG", log, TimeSpan.FromHours(1));
+                    //    }
+                    //    catch (Exception)
+                    //    {
 
-                        }
-                    });
+                    //    }
+                    //});
                 }
                 try
                 {

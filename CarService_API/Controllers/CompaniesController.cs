@@ -1,4 +1,5 @@
 ﻿using CarService_API.Models.DB;
+using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -88,6 +89,11 @@ namespace CarService_API.Controllers
                     throw new Exception("Araç bulunamadı");
                 }
 
+                if (!(await _context.Companyworks.AnyAsync(x => x.Usercarid == input.UserCarId && x.Active == "Y" && x.Isout == "N")))
+                {
+                    throw new Exception("Araç zaten içeridedir");
+                }
+
                 await _context.Companyworks.AddAsync(new Companywork
                 {
                     Active = "Y",
@@ -134,8 +140,8 @@ namespace CarService_API.Controllers
                     (!string.IsNullOrEmpty(input.Plaka) ? x.Usercar.Plate != null && x.Usercar.Plate.ToLower().Contains(input.Plaka.ToLower()) : true) &&
                     (!string.IsNullOrEmpty(input.Isdone) ? x.Isdone == input.Isdone : true) &&
                     (!string.IsNullOrEmpty(input.Isout) ? x.Isout == input.Isout : true) &&
-                    (input.StartDate.Year > 2010 ? x.Cdate >= input.StartDate : true) &&
-                    (input.EndDate.Year > 2010 ? x.Cdate < input.EndDate : true))
+                    (input.StartDate.Year > 2010 && x.Cdate.HasValue ? x.Cdate.Value.Date >= input.StartDate : true) &&
+                    (input.EndDate.Year > 2010 && x.Cdate.HasValue ? x.Cdate.Value.Date <= input.EndDate : true))
                     .Select(x => new SearchCompanyWorkList
                     {
                         Ad = x.Usercar.User.Name,
@@ -282,7 +288,7 @@ namespace CarService_API.Controllers
                 var u = _extentsion.GetTokenValues();
                 if (u == null || u.UserType == "C")
                 {
-                    throw new Exception("Hata oluştu");
+                    throw new Exception("Yetkiniz bulunamadı");
                 }
                 var r = await _context.Companyworks.FirstOrDefaultAsync(x => x.Id == input.Idno && x.Active == "Y");
                 if (r == null)
